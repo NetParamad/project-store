@@ -1,0 +1,56 @@
+'use client'
+
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
+import { Search, X } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { useState } from 'react'
+
+export function SearchBar() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const currentSearch = searchParams.get('search') ?? ''
+  const [value, setValue] = useState(currentSearch)
+  const t = useTranslations('products')
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const params = new URLSearchParams(searchParams.toString())
+    if (value.trim()) {
+      params.set('search', value.trim())
+    } else {
+      params.delete('search')
+    }
+    params.delete('page')
+    router.push(`/products?${params.toString()}`)
+  }
+
+  function handleClear() {
+    setValue('')
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('search')
+    params.delete('page')
+    router.push(`/products?${params.toString()}`)
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="relative w-full max-w-sm">
+      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder={t('search')}
+        className="pl-9 pr-8"
+      />
+      {value && (
+        <button
+          type="button"
+          onClick={handleClear}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+        >
+          <X size={14} />
+        </button>
+      )}
+    </form>
+  )
+}
