@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { Trash2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -19,6 +20,7 @@ export function DeleteCategoryButton({ id }: { id: number }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const t = useTranslations('admin.deleteCategory')
 
   async function handleDelete() {
     setLoading(true)
@@ -44,22 +46,21 @@ export function DeleteCategoryButton({ id }: { id: number }) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete Category</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete this category? Products in this
-            category will be uncategorized.
+            {t('message')}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
+            {t('cancel')}
           </Button>
           <Button
             variant="destructive"
             onClick={handleDelete}
             disabled={loading}
           >
-            {loading ? 'Deleting...' : 'Delete'}
+            {loading ? t('deleting') : t('delete')}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -2,12 +2,14 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
-import { useCart, calcRentalPrice } from '@/components/cart-provider'
-import { getStoreSettings, createRental } from '@/lib/supabase/queries'
+import { useCart } from '@/components/cart-provider'
+import { getStoreSettings } from '@/lib/supabase/queries'
+import { useField } from '@/lib/i18n'
 import { Loader2, Upload, CheckCircle, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -17,6 +19,7 @@ import type { StoreSettings } from '@/lib/db.types'
 
 export default function CheckoutPage() {
   const router = useRouter()
+  const locale = useLocale()
   const { items, totalPrice, clearCart } = useCart()
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null)
   const [user, setUser] = useState<{ id: string } | null>(null)
@@ -54,12 +57,6 @@ export default function CheckoutPage() {
     init()
   }, [router])
 
-  const totalDeposit = items
-    .filter(i => i.type === 'rent')
-    .reduce((sum, i) => sum + (Number(i.product.deposit) || 0) * i.quantity, 0)
-
-  const grandTotal = totalPrice + totalDeposit
-
   const valid = shipping.name && shipping.phone && shipping.address && shipping.province && shipping.district && shipping.subdistrict && shipping.zip && slipFile
 
   const handleSubmit = async () => {
@@ -70,25 +67,20 @@ export default function CheckoutPage() {
     try {
       const supabase = createClient()
 
-      const orderItems = items.map((item) => {
-        const unitPrice = item.type === 'buy'
-          ? item.product.price
-          : calcRentalPrice(item.product, item.rentalStart!, item.rentalEnd!).total
-
-        return {
-          product_id: item.product.id,
-          product_name: item.product.name_en,
-          type: item.type as 'buy' | 'rent',
-          quantity: item.quantity,
-          unit_price: unitPrice,
-          total_price: unitPrice * item.quantity,
-        }
-      })
+      const orderItems = items.map((item) => ({
+        product_id: item.product.id,
+        product_name: useField(locale, item.product.name_th, item.product.name_en),
+        type: 'buy' as const,
+        quantity: item.quantity,
+        unit_price: item.product.price,
+        total_price: item.product.price * item.quantity,
+      }))
 
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
-          total_amount: grandTotal,
+          user_id: user.id,
+          total_amount: totalPrice,
           shipping_name: shipping.name,
           shipping_phone: shipping.phone,
           shipping_address: shipping.address,
@@ -113,24 +105,6 @@ export default function CheckoutPage() {
         )
 
       if (itemsError) throw itemsError
-
-      for (const item of items) {
-        if (item.type === 'rent' && item.rentalStart && item.rentalEnd) {
-          const deposit = Number(item.product.deposit) || 0
-          const { total: cost } = calcRentalPrice(item.product, item.rentalStart, item.rentalEnd)
-          await createRental(supabase, {
-            order_id: order.id,
-            product_id: item.product.id,
-            user_id: user.id,
-            quantity: item.quantity,
-            start_date: item.rentalStart,
-            end_date: item.rentalEnd,
-            total_days: item.rentalDays ?? 1,
-            rental_cost: cost,
-            deposit_amount: deposit,
-          })
-        }
-      }
 
       const fileExt = slipFile.name.split('.').pop()
       const filePath = `${user.id}/${order.id}-${Date.now()}.${fileExt}`
@@ -158,32 +132,24 @@ export default function CheckoutPage() {
 
       if (slipError) throw slipError
 
-      if (items.some(i => i.type === 'rent')) {
-        await supabase
-          .from('rentals')
-          .update({ deposit_paid: true, updated_at: new Date().toISOString() })
-          .eq('order_id', order.id)
-      }
-
       for (const item of items) {
-        const field = item.type === 'buy' ? 'stock_qty' : 'rental_stock_qty'
         const { error: stockError } = await supabase.rpc('decrement_stock', {
           p_product_id: item.product.id,
-          p_field: field,
+          p_field: 'stock_qty',
           p_qty: item.quantity,
         })
         if (stockError && stockError.message?.includes('function')) {
           const { data: prod } = await supabase
             .from('products')
-            .select(field)
+            .select('stock_qty')
             .eq('id', item.product.id)
             .single()
           if (prod) {
-            const current = Number(prod[field as keyof typeof prod]) || 0
+            const current = Number(prod.stock_qty) || 0
             await supabase
               .from('products')
               .update({
-                [field]: Math.max(0, current - item.quantity),
+                stock_qty: Math.max(0, current - item.quantity),
                 updated_at: new Date().toISOString(),
               })
               .eq('id', item.product.id)
@@ -254,34 +220,34 @@ export default function CheckoutPage() {
         <div className="md:col-span-3 space-y-6">
           <section className="space-y-4">
             <h2 className="text-lg font-semibold">{t('shippingAddress')}</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2 space-y-1.5">
-                <Label>{t('fullName')}</Label>
-                <Input value={shipping.name} onChange={(e) => setShipping({ ...shipping, name: e.target.value })} placeholder="John Doe" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label>{t('fullName')} <span className="text-destructive">*</span></Label>
+                <Input value={shipping.name} onChange={(e) => setShipping({ ...shipping, name: e.target.value })} placeholder="John Doe" required />
               </div>
-              <div className="col-span-2 space-y-1.5">
-                <Label>{t('phone')}</Label>
-                <Input value={shipping.phone} onChange={(e) => setShipping({ ...shipping, phone: e.target.value })} placeholder="08X-XXX-XXXX" />
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label>{t('phone')} <span className="text-destructive">*</span></Label>
+                <Input value={shipping.phone} onChange={(e) => setShipping({ ...shipping, phone: e.target.value })} placeholder="08X-XXX-XXXX" required pattern="[0-9]{10}" title="กรุณากรอกเบอร์โทร 10 หลัก" />
               </div>
-              <div className="col-span-2 space-y-1.5">
-                <Label>{t('address')}</Label>
-                <Textarea value={shipping.address} onChange={(e) => setShipping({ ...shipping, address: e.target.value })} placeholder="House/ Building / Street" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{t('subdistrict')}</Label>
-                <Input value={shipping.subdistrict} onChange={(e) => setShipping({ ...shipping, subdistrict: e.target.value })} />
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label>{t('address')} <span className="text-destructive">*</span></Label>
+                <Textarea value={shipping.address} onChange={(e) => setShipping({ ...shipping, address: e.target.value })} placeholder="House/ Building / Street" required />
               </div>
               <div className="space-y-1.5">
-                <Label>{t('district')}</Label>
-                <Input value={shipping.district} onChange={(e) => setShipping({ ...shipping, district: e.target.value })} />
+                <Label>{t('subdistrict')} <span className="text-destructive">*</span></Label>
+                <Input value={shipping.subdistrict} onChange={(e) => setShipping({ ...shipping, subdistrict: e.target.value })} required />
               </div>
               <div className="space-y-1.5">
-                <Label>{t('province')}</Label>
-                <Input value={shipping.province} onChange={(e) => setShipping({ ...shipping, province: e.target.value })} />
+                <Label>{t('district')} <span className="text-destructive">*</span></Label>
+                <Input value={shipping.district} onChange={(e) => setShipping({ ...shipping, district: e.target.value })} required />
               </div>
               <div className="space-y-1.5">
-                <Label>{t('zip')}</Label>
-                <Input value={shipping.zip} onChange={(e) => setShipping({ ...shipping, zip: e.target.value })} />
+                <Label>{t('province')} <span className="text-destructive">*</span></Label>
+                <Input value={shipping.province} onChange={(e) => setShipping({ ...shipping, province: e.target.value })} required />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t('zip')} <span className="text-destructive">*</span></Label>
+                <Input value={shipping.zip} onChange={(e) => setShipping({ ...shipping, zip: e.target.value })} required pattern="[0-9]{5}" title="กรุณากรอกรหัสไปรษณีย์ 5 หลัก" />
               </div>
             </div>
           </section>
@@ -289,7 +255,7 @@ export default function CheckoutPage() {
           <section className="space-y-4">
             <h2 className="text-lg font-semibold">{t('payment')}</h2>
             {storeSettings && (
-              <div className="rounded-lg border p-4 space-y-3 text-sm">
+              <Card><CardContent className="p-4 space-y-3 text-sm">
                 {storeSettings.promptpay_qr_url && (
                   <div>
                     <p className="font-medium mb-2">{t('promptpay')}</p>
@@ -305,11 +271,11 @@ export default function CheckoutPage() {
                     <p>{t('name')}: {storeSettings.bank_account_name}</p>
                   </div>
                 )}
-              </div>
+              </CardContent></Card>
             )}
 
             <div className="space-y-1.5">
-              <Label>{t('uploadSlip')} *</Label>
+              <Label>{t('uploadSlip')} <span className="text-destructive">*</span></Label>
               <Input type="file" accept="image/*" onChange={(e) => setSlipFile(e.target.files?.[0] ?? null)} />
               {slipFile && <p className="text-xs text-muted-foreground">{slipFile.name}</p>}
             </div>
@@ -322,50 +288,33 @@ export default function CheckoutPage() {
         </div>
 
         <div className="md:col-span-2 space-y-4">
-          <div className="rounded-lg border p-4 space-y-3">
+          <Card><CardContent className="p-4 space-y-3">
             <h2 className="font-semibold">{t('orderSummary')}</h2>
-            {items.map((item) => {
-              const unitPrice = item.type === 'buy'
-                ? item.product.price
-                : calcRentalPrice(item.product, item.rentalStart!, item.rentalEnd!).total
-
-              return (
-                <div key={item.id} className="flex justify-between text-sm">
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate">{item.product.name_en}</p>
-                    <p className="text-muted-foreground text-xs">
-                      {item.type.toUpperCase()} x{item.quantity}
-                      {item.type === 'rent' && item.rentalStart && (
-                        <span className="flex items-center gap-1 mt-0.5">
-                          {item.rentalStart} → {item.rentalEnd}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <span className="font-medium ml-2 shrink-0">
-                    ฿{(unitPrice * item.quantity).toLocaleString()}
-                  </span>
+            {items.map((item) => (
+              <div key={item.id} className="flex justify-between text-sm">
+                <div className="flex-1 min-w-0">
+                  <p className="truncate">{useField(locale, item.product.name_th, item.product.name_en)}</p>
+                  <p className="text-muted-foreground text-xs">
+                    BUY x{item.quantity}
+                  </p>
                 </div>
-              )
-            })}
-            {totalDeposit > 0 && (
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>{t('depositIncluded')}</span>
-                <span>฿{totalDeposit.toLocaleString()}</span>
+                <span className="font-medium ml-2 shrink-0">
+                  ฿{(item.product.price * item.quantity).toLocaleString()}
+                </span>
               </div>
-            )}
+            ))}
             <Separator />
             <div className="flex justify-between font-semibold text-base">
-              <span>{t('totalInclDeposit')}</span>
-              <span>฿{grandTotal.toLocaleString()}</span>
+              <span>{t('total')}</span>
+              <span>฿{totalPrice.toLocaleString()}</span>
             </div>
-          </div>
+          </CardContent></Card>
 
           <Button className="w-full" size="lg" disabled={!valid || submitting} onClick={handleSubmit}>
             {submitting ? (
               <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('processing')}</>
             ) : (
-              <><Upload className="mr-2 h-4 w-4" /> {t('placeOrder')} (฿{grandTotal.toLocaleString()})</>
+              <><Upload className="mr-2 h-4 w-4" /> {t('placeOrder')} (฿{totalPrice.toLocaleString()})</>
             )}
           </Button>
         </div>

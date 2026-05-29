@@ -1,7 +1,8 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState, useRef } from 'react'
+import { useTranslations, useLocale } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import type { Category, Product, ProductImage } from '@/lib/db.types'
 import { Button } from '@/components/ui/button'
@@ -22,7 +23,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import { Trash2, Star, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -33,31 +33,16 @@ interface Props {
 
 export function ProductForm({ categories, initialData }: Props) {
   const router = useRouter()
+  const t = useTranslations('admin.productForm')
+  const locale = useLocale()
   const isEditing = !!initialData
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const slugEdited = useRef(false)
   const [images, setImages] = useState<ProductImage[]>(initialData?.images ?? [])
 
-  const [form, setForm] = useState({
-    category_id: 'none',
-    name_th: '',
-    name_en: '',
-    slug: '',
-    description_th: '',
-    description_en: '',
-    price: '',
-    rental_price_daily: '',
-    rental_price_weekly: '',
-    rental_price_monthly: '',
-    deposit: '',
-    stock_qty: '0',
-    rental_stock_qty: '0',
-    is_active: true,
-  })
-
-  useEffect(() => {
-    if (initialData) {
-      setForm({
+  const [form, setForm] = useState(() => initialData
+    ? {
         category_id: initialData.category_id?.toString() ?? 'none',
         name_th: initialData.name_th,
         name_en: initialData.name_en,
@@ -65,16 +50,22 @@ export function ProductForm({ categories, initialData }: Props) {
         description_th: initialData.description_th ?? '',
         description_en: initialData.description_en ?? '',
         price: initialData.price.toString(),
-        rental_price_daily: initialData.rental_price_daily?.toString() ?? '0',
-        rental_price_weekly: initialData.rental_price_weekly?.toString() ?? '0',
-        rental_price_monthly: initialData.rental_price_monthly?.toString() ?? '0',
-        deposit: initialData.deposit?.toString() ?? '0',
         stock_qty: initialData.stock_qty.toString(),
-        rental_stock_qty: initialData.rental_stock_qty.toString(),
         is_active: initialData.is_active,
+        is_bookable: initialData.is_bookable,
+      }
+    : {
+        category_id: 'none',
+        name_th: '',
+        name_en: '',
+        slug: '',
+        description_th: '',
+        description_en: '',
+        price: '',
+        stock_qty: '0',
+        is_active: true,
+        is_bookable: false,
       })
-    }
-  }, [initialData])
 
   function generateSlug(text: string) {
     return text
@@ -84,11 +75,11 @@ export function ProductForm({ categories, initialData }: Props) {
   }
 
   function handleNameEnChange(value: string) {
-    if (!isEditing && !form.slug) {
-      setForm({ ...form, name_en: value, slug: generateSlug(value) })
-    } else {
-      setForm({ ...form, name_en: value })
-    }
+    setForm((prev) => ({
+      ...prev,
+      name_en: value,
+      slug: slugEdited.current ? prev.slug : generateSlug(value),
+    }))
   }
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -140,10 +131,10 @@ export function ProductForm({ categories, initialData }: Props) {
         ])
       }
 
-      toast.success('Image uploaded!')
+      toast.success(t('imageUploaded'))
     } catch (err) {
       console.error(err)
-      toast.error('Failed to upload image')
+      toast.error(t('imageUploadFailed'))
     } finally {
       setUploading(false)
     }
@@ -156,17 +147,19 @@ export function ProductForm({ categories, initialData }: Props) {
         await supabase.from('product_images').delete().eq('id', imageId)
       }
       setImages(images.filter((img) => img.id !== imageId))
-      toast.success('Image removed')
+      toast.success(t('imageRemoved'))
     } catch (err) {
       console.error(err)
-      toast.error('Failed to remove image')
+      toast.error(t('imageRemoveFailed'))
     }
   }
 
   async function handleSetPrimary(imageId: number) {
     if (!isEditing || !initialData) {
       setImages(
-        images.map((img) => ({ ...img, is_primary: img.id === imageId }))
+        images
+          .map((img) => ({ ...img, is_primary: img.id === imageId }))
+          .sort((a, b) => (a.is_primary ? -1 : b.is_primary ? 1 : 0))
       )
       return
     }
@@ -184,12 +177,14 @@ export function ProductForm({ categories, initialData }: Props) {
         .eq('id', imageId)
 
       setImages(
-        images.map((img) => ({ ...img, is_primary: img.id === imageId }))
+        images
+          .map((img) => ({ ...img, is_primary: img.id === imageId }))
+          .sort((a, b) => (a.is_primary ? -1 : b.is_primary ? 1 : 0))
       )
-      toast.success('Primary image updated')
+      toast.success(t('primaryUpdated'))
     } catch (err) {
       console.error(err)
-      toast.error('Failed to update primary image')
+      toast.error(t('primaryUpdateFailed'))
     }
   }
 
@@ -207,13 +202,9 @@ export function ProductForm({ categories, initialData }: Props) {
         description_th: form.description_th || null,
         description_en: form.description_en || null,
         price: parseFloat(form.price) || 0,
-        rental_price_daily: parseFloat(form.rental_price_daily) || 0,
-        rental_price_weekly: parseFloat(form.rental_price_weekly) || 0,
-        rental_price_monthly: parseFloat(form.rental_price_monthly) || 0,
-        deposit: parseFloat(form.deposit) || 0,
         stock_qty: parseInt(form.stock_qty) || 0,
-        rental_stock_qty: parseInt(form.rental_stock_qty) || 0,
         is_active: form.is_active,
+        is_bookable: form.is_bookable,
       }
 
       if (isEditing && initialData) {
@@ -243,7 +234,7 @@ export function ProductForm({ categories, initialData }: Props) {
             .eq('id', existingImages[0].id)
         }
 
-        toast.success('Product updated!')
+        toast.success(t('productUpdated'))
       } else {
         const { data: product, error } = await supabase
           .from('products')
@@ -262,14 +253,14 @@ export function ProductForm({ categories, initialData }: Props) {
           })
         }
 
-        toast.success('Product created!')
+        toast.success(t('productCreated'))
       }
 
       router.push('/admin/products')
       router.refresh()
     } catch (err) {
       console.error(err)
-      toast.error('Something went wrong')
+      toast.error(t('error'))
     } finally {
       setLoading(false)
     }
@@ -279,32 +270,32 @@ export function ProductForm({ categories, initialData }: Props) {
     <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Basic Information</CardTitle>
+          <CardTitle>{t('basicInfo')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="category_id">Category</Label>
+            <Label htmlFor="category_id">{t('category')}</Label>
             <Select
               value={form.category_id}
               onValueChange={(v) => setForm({ ...form, category_id: v })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select category" />
+                <SelectValue placeholder={t('selectCategory')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">No category</SelectItem>
+                <SelectItem value="none">{t('noCategory')}</SelectItem>
                 {categories.map((c) => (
                   <SelectItem key={c.id} value={c.id.toString()}>
-                    {c.name_en}
+                    {locale === 'th' ? (c.name_th || c.name_en) : c.name_en}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name_th">Name (Thai) *</Label>
+              <Label htmlFor="name_th">{t('nameThai')} <span className="text-destructive">*</span></Label>
               <Input
                 id="name_th"
                 value={form.name_th}
@@ -314,7 +305,7 @@ export function ProductForm({ categories, initialData }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="name_en">Name (English) *</Label>
+              <Label htmlFor="name_en">{t('nameEn')} <span className="text-destructive">*</span></Label>
               <Input
                 id="name_en"
                 value={form.name_en}
@@ -326,19 +317,23 @@ export function ProductForm({ categories, initialData }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="slug">Slug *</Label>
+            <Label htmlFor="slug">{t('slug')} <span className="text-destructive">*</span></Label>
             <Input
               id="slug"
               value={form.slug}
-              onChange={(e) => setForm({ ...form, slug: e.target.value })}
+              onChange={(e) => {
+                const val = e.target.value
+                slugEdited.current = val !== ''
+                setForm((prev) => ({ ...prev, slug: val }))
+              }}
               placeholder="product-slug"
               required
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="description_th">Description (Thai)</Label>
+              <Label htmlFor="description_th">{t('descThai')}</Label>
               <Textarea
                 id="description_th"
                 value={form.description_th}
@@ -350,7 +345,7 @@ export function ProductForm({ categories, initialData }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description_en">Description (English)</Label>
+              <Label htmlFor="description_en">{t('descEn')}</Label>
               <Textarea
                 id="description_en"
                 value={form.description_en}
@@ -367,115 +362,40 @@ export function ProductForm({ categories, initialData }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Pricing</CardTitle>
+          <CardTitle>{t('pricing')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="price">Purchase Price (฿)</Label>
-            <Input
-              id="price"
-              type="number"
-              step="0.01"
-              min="0"
-              value={form.price}
-              onChange={(e) => setForm({ ...form, price: e.target.value })}
-              placeholder="0.00"
-            />
-          </div>
-
-          <Separator />
-          <p className="text-sm font-medium text-muted-foreground">
-            Rental Pricing
-          </p>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="rental_price_daily">Daily (฿)</Label>
-              <Input
-                id="rental_price_daily"
-                type="number"
-                step="0.01"
-                min="0"
-                value={form.rental_price_daily}
-                onChange={(e) =>
-                  setForm({ ...form, rental_price_daily: e.target.value })
-                }
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rental_price_weekly">Weekly (฿)</Label>
-              <Input
-                id="rental_price_weekly"
-                type="number"
-                step="0.01"
-                min="0"
-                value={form.rental_price_weekly}
-                onChange={(e) =>
-                  setForm({ ...form, rental_price_weekly: e.target.value })
-                }
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rental_price_monthly">Monthly (฿)</Label>
-              <Input
-                id="rental_price_monthly"
-                type="number"
-                step="0.01"
-                min="0"
-                value={form.rental_price_monthly}
-                onChange={(e) =>
-                  setForm({ ...form, rental_price_monthly: e.target.value })
-                }
-                placeholder="0"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="deposit">Deposit (฿)</Label>
-            <Input
-              id="deposit"
-              type="number"
-              step="0.01"
-              min="0"
-              value={form.deposit}
-              onChange={(e) => setForm({ ...form, deposit: e.target.value })}
-              placeholder="0"
-            />
+             <Label htmlFor="price">{t('purchasePrice')} <span className="text-destructive">*</span></Label>
+             <Input
+               id="price"
+               type="number"
+               step="0.01"
+               min="0"
+               value={form.price}
+               onChange={(e) => setForm({ ...form, price: e.target.value })}
+               placeholder="0.00"
+               required
+             />
           </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Inventory</CardTitle>
+          <CardTitle>{t('inventory')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="stock_qty">Stock (Purchase)</Label>
-              <Input
-                id="stock_qty"
-                type="number"
-                min="0"
-                value={form.stock_qty}
-                onChange={(e) => setForm({ ...form, stock_qty: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rental_stock_qty">Stock (Rental)</Label>
-              <Input
-                id="rental_stock_qty"
-                type="number"
-                min="0"
-                value={form.rental_stock_qty}
-                onChange={(e) =>
-                  setForm({ ...form, rental_stock_qty: e.target.value })
-                }
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="stock_qty">{t('stockPurchase')} <span className="text-destructive">*</span></Label>
+            <Input
+              id="stock_qty"
+              type="number"
+              min="0"
+              value={form.stock_qty}
+              onChange={(e) => setForm({ ...form, stock_qty: e.target.value })}
+              required
+            />
           </div>
 
           <div className="flex items-center gap-2 mt-4">
@@ -487,7 +407,20 @@ export function ProductForm({ categories, initialData }: Props) {
               }
             />
             <Label htmlFor="is_active" className="cursor-pointer">
-              Product is active (visible to customers)
+              {t('isActive')}
+            </Label>
+          </div>
+
+          <div className="flex items-center gap-2 mt-4">
+            <Checkbox
+              id="is_bookable"
+              checked={form.is_bookable}
+              onCheckedChange={(checked) =>
+                setForm({ ...form, is_bookable: checked === true })
+              }
+            />
+            <Label htmlFor="is_bookable" className="cursor-pointer">
+              {t('isBookable')}
             </Label>
           </div>
         </CardContent>
@@ -495,16 +428,16 @@ export function ProductForm({ categories, initialData }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Images</CardTitle>
+          <CardTitle>{t('images')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center gap-4">
             <Label
               htmlFor="image-upload"
               className="flex items-center gap-2 px-4 py-2 rounded-md border border-input bg-background text-sm font-medium cursor-pointer hover:bg-accent transition-colors"
             >
               <Upload size={16} />
-              Upload Image
+              {t('uploadImage')}
             </Label>
             <Input
               id="image-upload"
@@ -515,12 +448,12 @@ export function ProductForm({ categories, initialData }: Props) {
               disabled={uploading}
             />
             {uploading && (
-              <span className="text-sm text-muted-foreground">Uploading...</span>
+              <span className="text-sm text-muted-foreground">{t('uploading')}</span>
             )}
           </div>
 
           {images.length > 0 && (
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {images.map((img) => (
                 <div
                   key={img.id}
@@ -533,30 +466,34 @@ export function ProductForm({ categories, initialData }: Props) {
                     className="h-full w-full object-cover"
                   />
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleSetPrimary(img.id)}
-                      className={`p-1.5 rounded-full ${
+                      className={`h-8 w-8 rounded-full ${
                         img.is_primary
-                          ? 'bg-yellow-500 text-white'
-                          : 'bg-white/80 text-muted-foreground hover:bg-white'
+                          ? 'bg-yellow-500 text-white hover:bg-yellow-600 hover:text-white'
+                          : 'bg-white/80 text-muted-foreground hover:bg-white hover:text-muted-foreground'
                       }`}
-                      title="Set as primary"
+                      title={t('setPrimary')}
                     >
                       <Star size={14} fill={img.is_primary ? 'currentColor' : 'none'} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleDeleteImage(img.id)}
-                      className="p-1.5 rounded-full bg-red-500 text-white hover:bg-red-600"
-                      title="Delete image"
+                      className="h-8 w-8 rounded-full bg-red-500 text-white hover:bg-red-600 hover:text-white"
+                      title={t('deleteImage')}
                     >
                       <Trash2 size={14} />
-                    </button>
+                    </Button>
                   </div>
                   {img.is_primary && (
                     <div className="absolute top-1 left-1 bg-yellow-500 text-white text-[10px] px-1.5 py-0.5 rounded font-medium">
-                      Primary
+                      {t('primary')}
                     </div>
                   )}
                 </div>
@@ -566,20 +503,21 @@ export function ProductForm({ categories, initialData }: Props) {
         </CardContent>
       </Card>
 
-      <div className="flex items-center gap-3 pb-8">
-        <Button type="submit" disabled={loading}>
+      <div className="flex flex-col sm:flex-row items-center gap-3 pb-8">
+        <Button type="submit" disabled={loading} className="w-full sm:w-auto">
           {loading
-            ? 'Saving...'
+            ? t('saving')
             : isEditing
-              ? 'Update Product'
-              : 'Create Product'}
+              ? t('updateProduct')
+              : t('createProduct')}
         </Button>
         <Button
           type="button"
           variant="outline"
           onClick={() => router.push('/admin/products')}
+          className="w-full sm:w-auto"
         >
-          Cancel
+          {t('cancel')}
         </Button>
       </div>
     </form>

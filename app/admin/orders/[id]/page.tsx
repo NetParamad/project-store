@@ -2,10 +2,12 @@
 
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { getOrder, updateOrderStatus, createNotification } from '@/lib/supabase/queries'
 import { Loader2, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Label } from '@/components/ui/label'
 import {
@@ -19,17 +21,18 @@ import Link from 'next/link'
 import type { Order, OrderItem } from '@/lib/db.types'
 
 const statusOptions = [
-  { value: 'pending', label: 'Pending Payment' },
-  { value: 'paid', label: 'Paid' },
-  { value: 'confirmed', label: 'Confirmed' },
-  { value: 'shipped', label: 'Shipped' },
-  { value: 'delivered', label: 'Delivered' },
-  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'pending', labelKey: 'status.pending' },
+  { value: 'paid', labelKey: 'status.paid' },
+  { value: 'confirmed', labelKey: 'status.confirmed' },
+  { value: 'shipped', labelKey: 'status.shipped' },
+  { value: 'delivered', labelKey: 'status.delivered' },
+  { value: 'cancelled', labelKey: 'status.cancelled' },
 ]
 
 export default function AdminOrderDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const t = useTranslations()
   const [order, setOrder] = useState<(Order & { items: OrderItem[] }) | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -58,8 +61,8 @@ export default function AdminOrderDetailPage() {
         await createNotification(supabase, {
           user_id: order.user_id,
           type: 'order_update',
-          title: 'Order status updated',
-          message: `Order #${order.id} is now "${newStatus}"`,
+          title: t('admin.orderDetail.notifTitle'),
+          message: t('admin.orderDetail.notifMessage', { id: String(order.id), status: newStatus }),
           link: `/orders/${order.id}`,
         })
       } catch {} // notification is best-effort
@@ -87,44 +90,46 @@ export default function AdminOrderDetailPage() {
           <Link href="/admin/orders"><ArrowLeft size={18} /></Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Order #{order.id}</h1>
+          <h1 className="text-2xl font-bold">{t('admin.orderDetail.title', { id: String(order.id) })}</h1>
           <p className="text-sm text-muted-foreground">
             {new Date(order.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>
       </div>
 
-      <div className="rounded-lg border p-4 space-y-3">
-        <h2 className="font-semibold">Status</h2>
-        <div className="flex items-end gap-3">
+      <Card>
+        <CardContent className="p-4 space-y-3">
+        <h2 className="font-semibold">{t('admin.orderDetail.status')}</h2>
+        <div className="flex flex-col sm:flex-row items-end gap-3">
           <div className="space-y-1.5 flex-1">
-            <Label>Update Status</Label>
+            <Label>{t('admin.orderDetail.updateStatus')}</Label>
             <Select value={newStatus} onValueChange={setNewStatus}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  <SelectItem key={opt.value} value={opt.value}>{t(opt.labelKey)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <Button onClick={handleUpdateStatus} disabled={saving || newStatus === order.status}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Update'}
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : t('admin.orderDetail.update')}
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Current: <span className="font-medium">{statusOptions.find(s => s.value === order.status)?.label}</span>
+          {t('admin.orderDetail.current')} <span className="font-medium">{t('status.' + order.status)}</span>
         </p>
-      </div>
+      </CardContent></Card>
 
-      <section className="rounded-lg border p-4 space-y-3">
-        <h2 className="font-semibold">Items</h2>
+      <Card>
+        <CardContent className="p-4 space-y-3">
+        <h2 className="font-semibold">{t('admin.orderDetail.items')}</h2>
         {order.items.map((item) => (
-          <div key={item.id} className="flex justify-between text-sm">
-            <div>
-              <p>{item.product_name}</p>
+          <div key={item.id} className="flex justify-between text-sm gap-2">
+            <div className="min-w-0">
+              <p className="truncate">{item.product_name}</p>
               <p className="text-muted-foreground text-xs">{item.type.toUpperCase()} x{item.quantity} @ ฿{item.unit_price.toLocaleString()}</p>
             </div>
             <span className="font-medium">฿{item.total_price.toLocaleString()}</span>
@@ -132,13 +137,14 @@ export default function AdminOrderDetailPage() {
         ))}
         <Separator />
         <div className="flex justify-between font-semibold text-base">
-          <span>Total</span>
+          <span>{t('admin.orderDetail.total')}</span>
           <span>฿{order.total_amount.toLocaleString()}</span>
         </div>
-      </section>
+      </CardContent></Card>
 
-      <section className="rounded-lg border p-4 space-y-1 text-sm">
-        <h2 className="font-semibold mb-2">Shipping Address</h2>
+      <Card>
+        <CardContent className="p-4 space-y-1 text-sm">
+        <h2 className="font-semibold mb-2">{t('admin.orderDetail.shippingAddress')}</h2>
         <p>{order.shipping_name}</p>
         <p>{order.shipping_phone}</p>
         <p>{order.shipping_address}</p>
@@ -147,16 +153,16 @@ export default function AdminOrderDetailPage() {
         {order.note && (
           <>
             <Separator className="my-2" />
-            <p className="text-muted-foreground">Note: {order.note}</p>
+            <p className="text-muted-foreground">{t('admin.orderDetail.note')} {order.note}</p>
           </>
         )}
-      </section>
+      </CardContent></Card>
 
       {order.slip_url && (
         <section className="space-y-2">
-          <h2 className="font-semibold">Payment Slip</h2>
+          <h2 className="font-semibold">{t('admin.orderDetail.paymentSlip')}</h2>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={order.slip_url} alt="Payment Slip" className="max-w-sm rounded border" />
+          <img src={order.slip_url} alt="Payment Slip" className="max-w-full rounded border" />
         </section>
       )}
     </div>

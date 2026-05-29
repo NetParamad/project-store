@@ -4,12 +4,13 @@ import { useRouter, useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
-import { getOrder, getOrderRentals } from '@/lib/supabase/queries'
+import { getOrder } from '@/lib/supabase/queries'
 import { Loader2, ArrowLeft, CheckCircle, Circle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import Link from 'next/link'
-import type { Order, OrderItem, Rental, Product } from '@/lib/db.types'
+import type { Order, OrderItem } from '@/lib/db.types'
 
 const statusSteps = ['pending', 'paid', 'confirmed', 'shipped', 'delivered']
 
@@ -18,7 +19,6 @@ export default function OrderDetailPage() {
   const params = useParams()
   const t = useTranslations()
   const [order, setOrder] = useState<(Order & { items: OrderItem[] }) | null>(null)
-  const [rentals, setRentals] = useState<(Rental & { product: Product })[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -35,10 +35,6 @@ export default function OrderDetailPage() {
         return
       }
       setOrder(data)
-
-      const rentalData = await getOrderRentals(supabase, data.id)
-      setRentals(rentalData)
-
       setLoading(false)
     }
     fetch()
@@ -71,9 +67,11 @@ export default function OrderDetailPage() {
       </div>
 
       {order.status === 'cancelled' ? (
-        <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-center text-red-700 font-medium">
-          {t('orders.cancelled')}
-        </div>
+        <Card className="bg-red-50 border-red-200 text-center text-red-700 font-medium">
+          <CardContent className="p-4">
+            {t('orders.cancelled')}
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-2">
           {statusSteps.map((step, idx) => (
@@ -93,36 +91,27 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      <section className="rounded-lg border p-4 space-y-3">
+      <Card>
+        <CardContent className="p-4 space-y-3">
         <h2 className="font-semibold">{t('orders.items')}</h2>
-        {order.items.map((item) => {
-          const itemRental = rentals.find((r) => r.product_id === item.product_id)
-          return (
-            <div key={item.id} className="space-y-1">
-              <div className="flex justify-between text-sm">
-                <div>
-                  <p>{item.product_name}</p>
-                  <p className="text-muted-foreground text-xs">{item.type.toUpperCase()} x{item.quantity} @ ฿{item.unit_price.toLocaleString()}</p>
-                </div>
-                <span className="font-medium">฿{item.total_price.toLocaleString()}</span>
-              </div>
-              {itemRental && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground pl-2 border-l-2 border-primary/30">
-                  <span>{itemRental.start_date} → {itemRental.end_date} ({itemRental.total_days}d)</span>
-                  <span className="capitalize font-medium">[{t(`status.${itemRental.status}`)}]</span>
-                </div>
-              )}
+        {order.items.map((item) => (
+          <div key={item.id} className="flex justify-between text-sm">
+            <div className="min-w-0 flex-1">
+              <p className="break-words pr-2">{item.product_name}</p>
+              <p className="text-muted-foreground text-xs">{item.type.toUpperCase()} x{item.quantity} @ ฿{item.unit_price.toLocaleString()}</p>
             </div>
-          )
-        })}
+            <span className="font-medium shrink-0">฿{item.total_price.toLocaleString()}</span>
+          </div>
+        ))}
         <Separator />
         <div className="flex justify-between font-semibold text-base">
           <span>{t('orders.total')}</span>
           <span>฿{order.total_amount.toLocaleString()}</span>
         </div>
-      </section>
+      </CardContent></Card>
 
-      <section className="rounded-lg border p-4 space-y-1 text-sm">
+      <Card>
+        <CardContent className="p-4 space-y-1 text-sm">
         <h2 className="font-semibold mb-2">{t('orders.shippingAddress')}</h2>
         <p>{order.shipping_name}</p>
         <p>{order.shipping_phone}</p>
@@ -135,7 +124,7 @@ export default function OrderDetailPage() {
             <p className="text-muted-foreground">{t('orders.note')}: {order.note}</p>
           </>
         )}
-      </section>
+      </CardContent></Card>
 
       {order.slip_url && (
         <section className="space-y-2">

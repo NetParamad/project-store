@@ -1,35 +1,39 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 
 interface Props {
   data: Record<string, number>
 }
 
-const COLORS = ['#facc15', '#3b82f6', '#6366f1', '#a855f7', '#22c55e', '#ef4444']
-
-const LABELS: Record<string, string> = {
-  pending: 'Pending',
-  paid: 'Paid',
-  confirmed: 'Confirmed',
-  shipped: 'Shipped',
-  delivered: 'Delivered',
-  cancelled: 'Cancelled',
-}
+const CHART_COLORS = [
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
+]
 
 export function OrdersByStatusChart({ data }: Props) {
+  const t = useTranslations('admin.dashboard')
+  const st = useTranslations('status')
   const items = Object.entries(data)
     .filter(([, count]) => count > 0)
     .map(([status, count]) => ({
-      name: LABELS[status] || status,
+      name: st(status) || status,
       value: count,
     }))
 
   if (items.length === 0) return null
 
   return (
-    <div className="rounded-lg border p-4">
-      <h3 className="font-semibold text-sm mb-4">Orders by Status</h3>
+    <Card>
+      <CardHeader className="p-4 pb-0">
+        <CardTitle className="text-sm font-semibold">{t('ordersByStatus')}</CardTitle>
+      </CardHeader>
+      <CardContent className="p-4">
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -43,7 +47,7 @@ export function OrdersByStatusChart({ data }: Props) {
               dataKey="value"
             >
               {items.map((_, idx) => (
-                <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
               ))}
             </Pie>
             <Tooltip />
@@ -51,6 +55,7 @@ export function OrdersByStatusChart({ data }: Props) {
           </PieChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </CardContent>
+  </Card>
   )
 }

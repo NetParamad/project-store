@@ -3,44 +3,11 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { Product } from '@/lib/db.types'
 
-function daysBetween(start: string, end: string) {
-  const s = new Date(start)
-  const e = new Date(end)
-  return Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)))
-}
-
-export function calcRentalPrice(product: Product, startDate: string, endDate: string) {
-  const days = daysBetween(startDate, endDate)
-  const daily = Number(product.rental_price_daily) || 0
-  const weekly = Number(product.rental_price_weekly) || 0
-  const monthly = Number(product.rental_price_monthly) || 0
-
-  let total = 0
-  let remaining = days
-
-  if (monthly > 0) {
-    const months = Math.floor(remaining / 30)
-    total += months * monthly
-    remaining -= months * 30
-  }
-  if (weekly > 0) {
-    const weeks = Math.floor(remaining / 7)
-    total += weeks * weekly
-    remaining -= weeks * 7
-  }
-  total += remaining * daily
-
-  return { total, days }
-}
-
 export interface CartItem {
   id: string
   product: Product
-  type: 'buy' | 'rent'
+  type: 'buy'
   quantity: number
-  rentalStart?: string
-  rentalEnd?: string
-  rentalDays?: number
 }
 
 interface CartContextType {
@@ -98,9 +65,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0)
 
   const totalPrice = items.reduce((sum, i) => {
-    if (i.type === 'buy') return sum + i.product.price * i.quantity
-    const { total } = calcRentalPrice(i.product, i.rentalStart!, i.rentalEnd!)
-    return sum + total * i.quantity
+    return sum + i.product.price * i.quantity
   }, 0)
 
   return (

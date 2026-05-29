@@ -1,0 +1,259 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useTranslations, useLocale } from 'next-intl'
+import { useField } from '@/lib/i18n'
+import { createClient } from '@/lib/supabase/client'
+import { getAppointmentServices } from '@/lib/supabase/queries'
+import { Loader2, Plus, Pencil, Trash2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table'
+import type { AppointmentService } from '@/lib/db.types'
+
+export default function AdminAppointmentServicesPage() {
+  const t = useTranslations()
+  const locale = useLocale()
+  const [services, setServices] = useState<AppointmentService[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState<AppointmentService | null>(null)
+  const [open, setOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  const [formNameTh, setFormNameTh] = useState('')
+  const [formNameEn, setFormNameEn] = useState('')
+  const [formDescTh, setFormDescTh] = useState('')
+  const [formDescEn, setFormDescEn] = useState('')
+  const [formType, setFormType] = useState('try_on')
+  const [formDuration, setFormDuration] = useState('30')
+  const [formPrice, setFormPrice] = useState('0')
+  const [formActive, setFormActive] = useState(true)
+
+  useEffect(() => {
+    fetchServices()
+  }, [])
+
+  async function fetchServices() {
+    setLoading(true)
+    const supabase = createClient()
+    const data = await getAppointmentServices(supabase)
+    setServices(data)
+    setLoading(false)
+  }
+
+  function openCreate() {
+    setEditing(null)
+    setFormNameTh('')
+    setFormNameEn('')
+    setFormDescTh('')
+    setFormDescEn('')
+    setFormType('try_on')
+    setFormDuration('30')
+    setFormPrice('0')
+    setFormActive(true)
+    setOpen(true)
+  }
+
+  function openEdit(svc: AppointmentService) {
+    setEditing(svc)
+    setFormNameTh(svc.name_th)
+    setFormNameEn(svc.name_en)
+    setFormDescTh(svc.description_th || '')
+    setFormDescEn(svc.description_en || '')
+    setFormType(svc.type)
+    setFormDuration(svc.duration_minutes.toString())
+    setFormPrice((svc.price ?? 0).toString())
+    setFormActive(svc.is_active)
+    setOpen(true)
+  }
+
+  async function handleSave() {
+    if (!formNameTh || !formNameEn || !formDuration) return
+    setSaving(true)
+    try {
+      const supabase = createClient()
+      const payload = {
+        name_th: formNameTh,
+        name_en: formNameEn,
+        description_th: formDescTh || null,
+        description_en: formDescEn || null,
+        type: formType,
+        duration_minutes: parseInt(formDuration),
+        price: parseFloat(formPrice) || 0,
+        is_active: formActive,
+      }
+      if (editing) {
+        await supabase.from('appointment_services').update(payload).eq('id', editing.id)
+      } else {
+        await supabase.from('appointment_services').insert(payload)
+      }
+      setOpen(false)
+      fetchServices()
+    } catch (err) {
+      console.error(err)
+      alert('Failed to save')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete(id: number) {
+    if (!confirm(t('admin.appointmentServices.confirmDelete'))) return
+    const supabase = createClient()
+    await supabase.from('appointment_services').delete().eq('id', id)
+    fetchServices()
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h1 className="text-3xl font-bold">{t('admin.navigation.appointmentServices')}</h1>
+        <Button onClick={openCreate}>
+          <Plus size={16} className="mr-1" /> {t('admin.appointmentServices.create')}
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+        <Table style={{ minWidth: 700 }}>
+          <TableHeader>
+            <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableHead className="px-4 py-3 font-medium">ID</TableHead>
+              <TableHead className="px-4 py-3 font-medium">{t('admin.appointmentServices.name')}</TableHead>
+              <TableHead className="px-4 py-3 font-medium">{t('admin.appointmentServices.type')}</TableHead>
+              <TableHead className="px-4 py-3 font-medium">{t('admin.appointmentServices.duration')}</TableHead>
+              <TableHead className="px-4 py-3 font-medium">{t('admin.appointmentServices.price')}</TableHead>
+              <TableHead className="px-4 py-3 font-medium">{t('admin.appointmentServices.status')}</TableHead>
+              <TableHead className="px-4 py-3 text-right font-medium">{t('admin.appointmentServices.actions')}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {services.map((svc) => {
+              const name = useField(locale, svc.name_th, svc.name_en)
+              return (
+                <TableRow key={svc.id} className="hover:bg-accent/50 transition-colors">
+                  <TableCell className="px-4 py-3">{svc.id}</TableCell>
+                  <TableCell className="px-4 py-3 font-medium">{name}</TableCell>
+                  <TableCell className="px-4 py-3">
+                    <Badge variant="secondary" className="rounded-full">
+                      {t('admin.appointmentServices.type_' + svc.type)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="px-4 py-3">{svc.duration_minutes} min</TableCell>
+                  <TableCell className="px-4 py-3">{svc.price > 0 ? `฿${svc.price}` : t('admin.appointmentServices.free')}</TableCell>
+                  <TableCell className="px-4 py-3">
+                    <Badge className={`rounded-full border-transparent ${svc.is_active ? 'bg-green-100 text-green-800 hover:bg-green-100' : 'bg-gray-100 text-gray-800 hover:bg-gray-100'}`}>
+                      {svc.is_active ? t('admin.appointmentServices.active') : t('admin.appointmentServices.inactive')}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(svc)}>
+                        <Pencil size={14} />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(svc.id)}>
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {editing ? t('admin.appointmentServices.edit') : t('admin.appointmentServices.create')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>ชื่อ (ไทย) <span className="text-destructive">*</span></Label>
+                <Input value={formNameTh} onChange={(e) => setFormNameTh(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Name (EN) <span className="text-destructive">*</span></Label>
+                <Input value={formNameEn} onChange={(e) => setFormNameEn(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label>คำอธิบาย (ไทย)</Label>
+                <Textarea value={formDescTh} onChange={(e) => setFormDescTh(e.target.value)} rows={2} />
+              </div>
+              <div className="space-y-2">
+                <Label>Description (EN)</Label>
+                <Textarea value={formDescEn} onChange={(e) => setFormDescEn(e.target.value)} rows={2} />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('admin.appointmentServices.type')} <span className="text-destructive">*</span></Label>
+                <Select value={formType} onValueChange={setFormType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="try_on">{t('admin.appointmentServices.type_try_on')}</SelectItem>
+                    <SelectItem value="consultation">{t('admin.appointmentServices.type_consultation')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{t('admin.appointmentServices.duration')} (min) <span className="text-destructive">*</span></Label>
+                <Input type="number" value={formDuration} onChange={(e) => setFormDuration(e.target.value)} min={15} required />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('admin.appointmentServices.price')}</Label>
+                <Input type="number" value={formPrice} onChange={(e) => setFormPrice(e.target.value)} min={0} />
+              </div>
+              <div className="space-y-2 flex items-center gap-2 pt-6">
+                <Checkbox id="is_active" checked={formActive} onCheckedChange={(checked) => setFormActive(!!checked)} />
+                <Label htmlFor="is_active" className="mb-0">{t('admin.appointmentServices.active')}</Label>
+              </div>
+            </div>
+            <Button onClick={handleSave} disabled={saving || !formNameTh || !formNameEn} className="w-full">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : t('admin.appointmentServices.save')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}

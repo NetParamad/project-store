@@ -55,7 +55,7 @@ export function UpdatePasswordForm({
           <form onSubmit={handleForgotPassword}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
-                <Label htmlFor="password">New password</Label>
+                <Label htmlFor="password">New password <span className="text-destructive">*</span></Label>
                 <Input
                   id="password"
                   type="password"

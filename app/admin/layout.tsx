@@ -22,11 +22,11 @@ export default async function AdminLayout({
 
   if (profile?.role === 'admin') {
     return (
-      <div className="min-h-screen flex">
+      <div className="min-h-screen flex flex-col md:flex-row">
         <AdminSidebar />
         <div className="flex-1 flex flex-col">
           <AdminHeader user={profile} />
-          <main className="flex-1 p-6 bg-muted/30">
+          <main className="flex-1 p-4 sm:p-6 bg-muted/30">
             {children}
           </main>
         </div>

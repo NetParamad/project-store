@@ -1,6 +1,6 @@
 "use client";
 
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { setCookie } from "@/lib/cookie";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,7 @@ import { Languages } from "lucide-react";
 
 const LocaleSwitcher = () => {
   const locale = useLocale();
+  const t = useTranslations("locale");
 
   const onSelect = (value: string) => {
     setCookie("locale", value, 365);
@@ -30,10 +31,10 @@ const LocaleSwitcher = () => {
       <DropdownMenuContent className="w-content" align="start">
         <DropdownMenuRadioGroup value={locale} onValueChange={onSelect}>
           <DropdownMenuRadioItem className="flex gap-2" value="th">
-            <span>ไทย</span>
+            <span>{t("th")}</span>
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem className="flex gap-2" value="en">
-            <span>English</span>
+            <span>{t("en")}</span>
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>

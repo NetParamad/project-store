@@ -2,7 +2,8 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { getStoreSettings } from "@/lib/supabase/queries";
 import { useField } from "@/lib/i18n";
-import { Store, Shield, Heart } from "lucide-react";
+import { Store, Shield, Heart, Calendar, Truck, Headphones } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
 export default async function AboutPage() {
   const supabase = await createClient();
@@ -19,30 +20,39 @@ export default async function AboutPage() {
   const features = [
     {
       icon: Store,
-      title: locale === "th" ? "สินค้าคุณภาพ" : "Quality Products",
-      desc: locale === "th"
-        ? "เราเลือกสรรสินค้าคุณภาพดีมาให้คุณเลือกทั้งซื้อและเช่า"
-        : "We curate quality products available for both purchase and rental.",
+      title: t("features.quality.title"),
+      desc: t("features.quality.desc"),
     },
     {
       icon: Shield,
-      title: locale === "th" ? "มั่นใจได้" : "Peace of Mind",
-      desc: locale === "th"
-        ? "ระบบมัดจำที่โปร่งใส คืนเงินมัดจำเมื่อส่งคืนสินค้าเรียบร้อย"
-        : "Transparent deposit system with full refund upon return.",
+      title: t("features.peace.title"),
+      desc: t("features.peace.desc"),
     },
     {
       icon: Heart,
-      title: locale === "th" ? "บริการประทับใจ" : "Great Service",
-      desc: locale === "th"
-        ? "ทีมงานพร้อมให้คำแนะนำและดูแลคุณตั้งแต่เลือกสินค้าจนถึงส่งมอบ"
-        : "Our team is here to help you from selection to delivery.",
+      title: t("features.service.title"),
+      desc: t("features.service.desc"),
+    },
+    {
+      icon: Calendar,
+      title: t("features.booking.title"),
+      desc: t("features.booking.desc"),
+    },
+    {
+      icon: Truck,
+      title: t("features.delivery.title"),
+      desc: t("features.delivery.desc"),
+    },
+    {
+      icon: Headphones,
+      title: t("features.support.title"),
+      desc: t("features.support.desc"),
     },
   ];
 
   return (
     <div className="flex flex-col">
-      <section className="bg-gradient-to-b from-primary/5 to-background py-20 lg:py-28">
+      <section className="bg-gradient-to-b from-primary/5 to-background py-12 sm:py-20 lg:py-28">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
           <h1 className="text-4xl lg:text-5xl font-bold tracking-tight">
             {t("title")}
@@ -66,13 +76,13 @@ export default async function AboutPage() {
 
       <section className="py-16 bg-muted/30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((f) => (
-              <div key={f.title} className="rounded-lg border bg-card p-6 space-y-3">
+              <Card key={f.title} className="p-6 space-y-3">
                 <f.icon className="h-8 w-8 text-primary" />
                 <h3 className="font-semibold">{f.title}</h3>
                 <p className="text-sm text-muted-foreground">{f.desc}</p>
-              </div>
+              </Card>
             ))}
           </div>
         </div>

@@ -1,13 +1,17 @@
 'use client'
 
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { Trash2, Minus, Plus, ShoppingBag, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { useCart, calcRentalPrice } from '@/components/cart-provider'
+import { useCart } from '@/components/cart-provider'
+import { useField } from '@/lib/i18n'
 
 export default function CartPage() {
+  const locale = useLocale()
   const { items, removeItem, updateQuantity, clearCart, totalItems, totalPrice } = useCart()
   const t = useTranslations('cart')
 
@@ -35,96 +39,79 @@ export default function CartPage() {
           </div>
 
           <div className="space-y-3">
-            {items.map((item) => {
-              const unitPrice = item.type === 'buy'
-                ? item.product.price
-                : (() => {
-                    const { total } = calcRentalPrice(item.product, item.rentalStart!, item.rentalEnd!)
-                    return total
-                  })()
-
-              return (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-4 rounded-lg border bg-background p-4"
-                >
-                  <div className="h-16 w-16 rounded-md bg-muted overflow-hidden shrink-0">
-                    {item.product.images?.[0] ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={item.product.images[0].url}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center text-muted-foreground text-xs">
-                        {t('noImg')}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <Link
-                      href={`/products/${item.product.slug}`}
-                      className="font-medium text-sm hover:underline line-clamp-1"
-                    >
-                      {item.product.name_en}
-                    </Link>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium uppercase">
-                        {item.type}
-                      </span>
-                      <span className="text-sm font-semibold">
-                        ฿{unitPrice.toLocaleString()}
-                      </span>
+            {items.map((item) => (
+              <Card key={item.id}>
+                <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                <div className="h-16 w-16 rounded-md bg-muted overflow-hidden shrink-0">
+                  {(item.product.images?.find(i => i.is_primary) ?? item.product.images?.[0]) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={(item.product.images?.find(i => i.is_primary) ?? item.product.images?.[0])!.url}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-muted-foreground text-xs">
+                      {t('noImg')}
                     </div>
-                    {item.type === 'rent' && item.rentalStart && item.rentalEnd && (
-                      <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                        <span>{item.rentalStart} → {item.rentalEnd}</span>
-                        {item.rentalDays && <span>({item.rentalDays}d)</span>}
-                      </div>
-                    )}
-                  </div>
+                  )}
+                </div>
 
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                    >
-                      <Minus size={14} />
-                    </Button>
-                    <span className="w-8 text-center text-sm font-medium">
-                      {item.quantity}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    >
-                      <Plus size={14} />
-                    </Button>
-                  </div>
-
-                  <div className="text-right min-w-[80px]">
-                    <p className="font-semibold">
-                      ฿{(unitPrice * item.quantity).toLocaleString()}
-                    </p>
-                  </div>
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive shrink-0"
-                    onClick={() => removeItem(item.id)}
+                <div className="flex-1 min-w-0">
+                  <Link
+                    href={`/products/${item.product.slug}`}
+                    className="font-medium text-sm hover:underline line-clamp-1"
                   >
-                    <Trash2 size={16} />
+                    {useField(locale, item.product.name_th, item.product.name_en)}
+                  </Link>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="secondary" className="rounded uppercase">
+                      BUY
+                    </Badge>
+                    <span className="text-sm font-semibold">
+                      ฿{item.product.price.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                  >
+                    <Minus size={14} />
+                  </Button>
+                  <span className="w-8 text-center text-sm font-medium">
+                    {item.quantity}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                  >
+                    <Plus size={14} />
                   </Button>
                 </div>
-              )
-            })}
+
+                <div className="text-right min-w-[80px] self-end sm:self-auto">
+                  <p className="font-semibold">
+                    ฿{(item.product.price * item.quantity).toLocaleString()}
+                  </p>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive shrink-0 self-end sm:self-auto"
+                  onClick={() => removeItem(item.id)}
+                >
+                  <Trash2 size={16} />
+                </Button>
+              </CardContent></Card>
+            ))}
           </div>
 
           <Separator />
@@ -136,14 +123,14 @@ export default function CartPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
             <Button asChild variant="outline">
               <Link href="/products">
                 <ArrowLeft size={16} className="mr-2" />
                 {t('continue')}
               </Link>
             </Button>
-            <Button className="flex-1" size="lg" asChild>
+            <Button className="w-full sm:flex-1" size="lg" asChild>
               <Link href="/checkout">{t('checkout')}</Link>
             </Button>
           </div>

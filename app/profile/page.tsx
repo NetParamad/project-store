@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { getProfile, updateProfile } from '@/lib/supabase/queries'
-import { Loader2, User, Save } from 'lucide-react'
+import Link from 'next/link'
+import { Loader2, User, Save, ShoppingBag, CalendarDays, LayoutDashboard, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
@@ -127,11 +129,49 @@ export default function ProfilePage() {
           />
         </div>
 
-        <Button onClick={handleSave} disabled={saving}>
+        <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto">
           <Save size={16} className="mr-1" />
           {saving ? t('common.loading') : t('profile.save')}
         </Button>
       </div>
+
+      <Separator />
+
+      <Card>
+        <CardContent className="p-0 divide-y">
+        <Link
+          href="/orders"
+          className="flex items-center justify-between p-4 hover:bg-accent transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <ShoppingBag size={18} className="text-muted-foreground" />
+            <span className="text-sm font-medium">{t('nav.orders')}</span>
+          </div>
+          <ChevronRight size={16} className="text-muted-foreground" />
+        </Link>
+          <Link
+          href="/appointments"
+          className="flex items-center justify-between p-4 hover:bg-accent transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <CalendarDays size={18} className="text-muted-foreground" />
+            <span className="text-sm font-medium">{t('nav.appointments')}</span>
+          </div>
+          <ChevronRight size={16} className="text-muted-foreground" />
+        </Link>
+        {profile.role === 'admin' && (
+          <Link
+            href="/admin"
+            className="flex items-center justify-between p-4 hover:bg-accent transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <LayoutDashboard size={18} className="text-muted-foreground" />
+              <span className="text-sm font-medium">{t('nav.admin')}</span>
+            </div>
+            <ChevronRight size={16} className="text-muted-foreground" />
+          </Link>
+        )}
+      </CardContent></Card>
     </div>
   )
 }

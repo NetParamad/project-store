@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/client'
 import { getUserOrders } from '@/lib/supabase/queries'
 import { Loader2, Package, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import type { Order, OrderItem } from '@/lib/db.types'
 
@@ -54,22 +56,23 @@ export default function OrdersPage() {
       ) : (
         <div className="space-y-3">
           {orders.map((order) => (
-            <div key={order.id} className="rounded-lg border p-4 flex items-center justify-between">
+            <Card key={order.id}>
+              <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">
                   {t('orders.orderNum')}{order.id} &middot; {new Date(order.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                 </p>
                 <p className="font-semibold">฿{order.total_amount.toLocaleString()}</p>
-                <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${statusColor(order.status)}`}>
+                <Badge className={`${statusColor(order.status)} border-transparent rounded-full`}>
                   {t(`status.${order.status}`)}
-                </span>
+                </Badge>
               </div>
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="outline" size="sm" className="self-start sm:self-auto">
                 <Link href={`/orders/${order.id}`}>
                   <Eye size={14} className="mr-1" /> {t('orders.view')}
                 </Link>
               </Button>
-            </div>
+            </CardContent></Card>
           ))}
         </div>
       )}

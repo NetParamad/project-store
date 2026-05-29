@@ -2,15 +2,18 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from '@/lib/supabase/queries'
 import { Loader2, Bell, CheckCheck, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import Link from 'next/link'
 import type { Notification } from '@/lib/db.types'
 
 export default function NotificationsPage() {
   const router = useRouter()
+  const t = useTranslations()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -59,14 +62,14 @@ export default function NotificationsPage() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Notifications</h1>
+          <h1 className="text-3xl font-bold">{t('notifications.title')}</h1>
           <p className="text-muted-foreground mt-1">
-            {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
+            {unreadCount > 0 ? t('notifications.unread', { count: unreadCount }) : t('notifications.allCaughtUp')}
           </p>
         </div>
         {unreadCount > 0 && (
           <Button variant="outline" size="sm" onClick={handleMarkAllRead}>
-            <CheckCheck size={14} className="mr-1" /> Mark all read
+            <CheckCheck size={14} className="mr-1" /> {t('notifications.markAllRead')}
           </Button>
         )}
       </div>
@@ -74,20 +77,19 @@ export default function NotificationsPage() {
       {notifications.length === 0 ? (
         <div className="text-center py-16 space-y-4">
           <Bell size={48} className="mx-auto text-muted-foreground" />
-          <p className="text-muted-foreground">No notifications yet</p>
+          <p className="text-muted-foreground">{t('notifications.noNotifications')}</p>
           <Button asChild>
-            <Link href="/products">Browse Products</Link>
+            <Link href="/products">{t('products.browseProducts')}</Link>
           </Button>
         </div>
       ) : (
         <div className="space-y-2">
           {notifications.map((n) => (
-            <div
+            <Card
               key={n.id}
-              className={`rounded-lg border p-4 flex items-start gap-3 transition-colors ${
-                !n.read ? 'bg-primary/5 border-primary/20' : ''
-              }`}
+              className={!n.read ? 'bg-primary/5 border-primary/20' : ''}
             >
+              <CardContent className="p-4 flex items-start gap-3">
               <div className={`mt-1 h-2 w-2 rounded-full shrink-0 ${
                 !n.read ? 'bg-primary' : 'bg-transparent'
               }`} />
@@ -114,7 +116,7 @@ export default function NotificationsPage() {
                   </Button>
                 )}
               </div>
-            </div>
+            </CardContent></Card>
           ))}
         </div>
       )}

@@ -9,84 +9,7 @@ import { ThemeSwitcher } from "./theme-switcher";
 import { CartButton } from "./cart-button";
 import { NotificationBell } from "./notification-bell";
 import { LocaleSwitcher } from "./locale-switcher";
-import {
-  House,
-  Package,
-  Store,
-  Mail,
-  ShoppingBag,
-  CalendarDays,
-  LayoutDashboard,
-} from "lucide-react";
-
-function NavLinks({
-  t,
-}: {
-  t: Awaited<ReturnType<typeof getTranslations<"nav">>>;
-}) {
-  const navLinks = [
-    { href: "/", label: t("home"), icon: House },
-    { href: "/products", label: t("products"), icon: Package },
-    { href: "/about", label: t("about"), icon: Store },
-    { href: "/contact", label: t("contact"), icon: Mail },
-  ];
-
-  return navLinks.map((link) => (
-    <Link
-      key={link.href}
-      href={link.href}
-      className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-    >
-      <link.icon size={16} />
-      {link.label}
-    </Link>
-  ));
-}
-
-async function AuthLinks() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const t = await getTranslations("nav");
-
-  return (
-    <>
-      <Link
-        href="/orders"
-        className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ShoppingBag size={16} />
-        {t("orders")}
-      </Link>
-      <Link
-        href="/rentals"
-        className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <CalendarDays size={16} />
-        {t("rentals")}
-      </Link>
-    </>
-  );
-}
-
-async function AdminLink() {
-  const supabase = await createClient();
-  const profile = await getProfile(supabase);
-  if (profile?.role !== "admin") return null;
-  const t = await getTranslations("nav");
-
-  return (
-    <Link
-      href="/admin"
-      className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-    >
-      <LayoutDashboard size={16} />
-      {t("admin")}
-    </Link>
-  );
-}
+import { NavLinks } from "./nav-links";
 
 function AuthSection() {
   return <AuthButton />;
@@ -106,31 +29,24 @@ export async function Header() {
   const storeName = settings
     ? useField(locale, settings.store_name_th, settings.store_name_en)
     : t("myStore");
-
   return (
-    <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-4 sm:gap-8 min-w-0">
             <Link
               href="/"
-              className="text-xl font-bold hover:text-primary transition-colors"
+              className="text-xl font-bold hover:text-primary transition-colors truncate shrink-0 max-w-[160px] sm:max-w-none"
             >
               {storeName}
             </Link>
 
             <nav className="hidden md:flex items-center gap-6">
-              <NavLinks t={t} />
-              <Suspense fallback={null}>
-                <AuthLinks />
-              </Suspense>
-              <Suspense fallback={null}>
-                <AdminLink />
-              </Suspense>
+              <NavLinks labels={{ home: t("home"), products: t("products"), about: t("about"), contact: t("contact") }} />
             </nav>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Suspense fallback={null}>
               <NotificationBell />
             </Suspense>

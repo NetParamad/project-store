@@ -7,7 +7,9 @@ import { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { CartProvider } from "@/components/cart-provider";
+import { ColorThemeProvider } from "@/components/color-theme-provider";
 import "./globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -43,15 +45,18 @@ export default async function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
+            <ColorThemeProvider>
             <CartProvider>
-              <div className="min-h-screen flex flex-col">
+              <div className="min-h-screen flex flex-col pb-16 md:pb-0">
                 <Header />
                 <main className="flex-1">
                   {children}
                 </main>
                 <Suspense fallback={null}><Footer /></Suspense>
+                <Suspense fallback={null}><MobileBottomNav /></Suspense>
               </div>
             </CartProvider>
+            </ColorThemeProvider>
             <Toaster />
           </ThemeProvider>
         </NextIntlClientProvider>

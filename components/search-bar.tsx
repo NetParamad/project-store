@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Search, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 
 export function SearchBar() {
@@ -40,16 +41,18 @@ export function SearchBar() {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={t('search')}
-        className="pl-9 pr-8"
+        className="pl-9 pr-9"
       />
       {value && (
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon"
           onClick={handleClear}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          className="absolute right-0 top-0 h-full"
         >
           <X size={14} />
-        </button>
+        </Button>
       )}
     </form>
   )

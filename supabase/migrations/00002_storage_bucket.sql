@@ -9,11 +9,13 @@ VALUES ('product-images', 'product-images', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Public read access
+DROP POLICY IF EXISTS "Public can view product images" ON storage.objects;
 CREATE POLICY "Public can view product images"
   ON storage.objects FOR SELECT
   USING (bucket_id = 'product-images');
 
 -- Admins only can upload/update/delete
+DROP POLICY IF EXISTS "Admins can upload product images" ON storage.objects;
 CREATE POLICY "Admins can upload product images"
   ON storage.objects FOR INSERT
   WITH CHECK (
@@ -21,6 +23,7 @@ CREATE POLICY "Admins can upload product images"
     AND public.is_admin()
   );
 
+DROP POLICY IF EXISTS "Admins can update product images" ON storage.objects;
 CREATE POLICY "Admins can update product images"
   ON storage.objects FOR UPDATE
   USING (
@@ -28,6 +31,7 @@ CREATE POLICY "Admins can update product images"
     AND public.is_admin()
   );
 
+DROP POLICY IF EXISTS "Admins can delete product images" ON storage.objects;
 CREATE POLICY "Admins can delete product images"
   ON storage.objects FOR DELETE
   USING (
@@ -39,10 +43,11 @@ CREATE POLICY "Admins can delete product images"
 -- BUCKET 2: Payment slips (PromptPay)
 -- ============================================================
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('payment-slips', 'payment-slips', false)
+VALUES ('payment-slips', 'payment-slips', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Users can view their own slips; admins can view all
+DROP POLICY IF EXISTS "Users can view own payment slips" ON storage.objects;
 CREATE POLICY "Users can view own payment slips"
   ON storage.objects FOR SELECT
   USING (
@@ -54,6 +59,7 @@ CREATE POLICY "Users can view own payment slips"
   );
 
 -- Any authenticated user can upload a slip
+DROP POLICY IF EXISTS "Authenticated users can upload payment slips" ON storage.objects;
 CREATE POLICY "Authenticated users can upload payment slips"
   ON storage.objects FOR INSERT
   WITH CHECK (
@@ -62,6 +68,7 @@ CREATE POLICY "Authenticated users can upload payment slips"
   );
 
 -- Only admins can update/delete
+DROP POLICY IF EXISTS "Admins can update payment slips" ON storage.objects;
 CREATE POLICY "Admins can update payment slips"
   ON storage.objects FOR UPDATE
   USING (
@@ -69,6 +76,7 @@ CREATE POLICY "Admins can update payment slips"
     AND public.is_admin()
   );
 
+DROP POLICY IF EXISTS "Admins can delete payment slips" ON storage.objects;
 CREATE POLICY "Admins can delete payment slips"
   ON storage.objects FOR DELETE
   USING (
@@ -84,11 +92,13 @@ VALUES ('store-assets', 'store-assets', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Anyone can view (logo, QR need to be visible to customers)
+DROP POLICY IF EXISTS "Anyone can view store assets" ON storage.objects;
 CREATE POLICY "Anyone can view store assets"
   ON storage.objects FOR SELECT
   USING (bucket_id = 'store-assets');
 
 -- Only admins can manage
+DROP POLICY IF EXISTS "Admins can upload store assets" ON storage.objects;
 CREATE POLICY "Admins can upload store assets"
   ON storage.objects FOR INSERT
   WITH CHECK (
@@ -96,6 +106,7 @@ CREATE POLICY "Admins can upload store assets"
     AND public.is_admin()
   );
 
+DROP POLICY IF EXISTS "Admins can update store assets" ON storage.objects;
 CREATE POLICY "Admins can update store assets"
   ON storage.objects FOR UPDATE
   USING (
@@ -103,6 +114,7 @@ CREATE POLICY "Admins can update store assets"
     AND public.is_admin()
   );
 
+DROP POLICY IF EXISTS "Admins can delete store assets" ON storage.objects;
 CREATE POLICY "Admins can delete store assets"
   ON storage.objects FOR DELETE
   USING (

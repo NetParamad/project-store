@@ -1,9 +1,13 @@
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
-import { getProductBySlug, getStoreSettings } from '@/lib/supabase/queries'
-import { useField } from '@/lib/i18n'
+import { getProductBySlug } from '@/lib/supabase/queries'
 import { AddToCartButton } from './add-to-cart-button'
+import { ProductGallery } from './product-gallery'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 
 export default async function ProductDetailPage({
   params,
@@ -12,70 +16,41 @@ export default async function ProductDetailPage({
 }) {
   const { slug } = await params
   const supabase = await createClient()
-  const [locale, product, settings, t] = await Promise.all([
+  const [locale, product, t] = await Promise.all([
     import('next-intl/server').then(m => m.getLocale()),
     getProductBySlug(supabase, slug),
-    getStoreSettings(supabase),
     getTranslations('products'),
   ])
 
   if (!product) notFound()
 
   const images = product.images ?? []
-  const primaryImage = images.find((img) => img.is_primary) ?? images[0]
-  const otherImages = images.filter((img) => img.id !== primaryImage?.id)
 
   const hasPurchase = Number(product.price) > 0 && Number(product.stock_qty) > 0
-  const hasRental =
-    (Number(product.rental_price_daily) > 0 ||
-    Number(product.rental_price_weekly) > 0 ||
-    Number(product.rental_price_monthly) > 0) && Number(product.rental_stock_qty) > 0
+  const isOutOfStock = Number(product.stock_qty) <= 0
+  const productName = locale === 'th' ? (product.name_th || product.name_en) : (product.name_en || product.name_th)
+  const otherName = locale === 'th' ? product.name_en : product.name_th
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
       <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
         {/* Images */}
-        <div className="space-y-3">
-          <div className="aspect-square rounded-lg border bg-muted overflow-hidden">
-            {primaryImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={primaryImage.url}
-                alt={product.name_en}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="h-full w-full flex items-center justify-center text-muted-foreground">
-                {t('noImage')}
-              </div>
-            )}
-          </div>
-          {otherImages.length > 0 && (
-            <div className="grid grid-cols-4 gap-2">
-              {otherImages.map((img) => (
-                <div
-                  key={img.id}
-                  className="aspect-square rounded-md border bg-muted overflow-hidden"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={img.url}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {images.length > 0 ? (
+          <ProductGallery images={images} productName={productName} />
+        ) : (
+          <Card>
+            <CardContent className="aspect-square p-0 flex items-center justify-center text-muted-foreground bg-muted rounded-lg">
+            {t('noImage')}
+          </CardContent></Card>
+        )}
 
         {/* Info */}
         <div className="space-y-6">
           <div>
-            <h1 className="text-3xl font-bold">{product.name_en}</h1>
-            {product.name_th && (
+            <h1 className="text-3xl font-bold">{productName}</h1>
+            {otherName && (
               <p className="text-lg text-muted-foreground mt-1">
-                {product.name_th}
+                {otherName}
               </p>
             )}
           </div>
@@ -91,59 +66,24 @@ export default async function ProductDetailPage({
               </div>
             )}
 
-            {hasRental && (
-              <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">
-                  {t('rentalPrices')}
-                </p>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  {Number(product.rental_price_daily) > 0 && (
-                    <div className="bg-background rounded-md p-2">
-                      <p className="text-lg font-bold">
-                        ฿{Number(product.rental_price_daily)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{t('perDay')}</p>
-                    </div>
-                  )}
-                  {Number(product.rental_price_weekly) > 0 && (
-                    <div className="bg-background rounded-md p-2">
-                      <p className="text-lg font-bold">
-                        ฿{Number(product.rental_price_weekly)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{t('perWeek')}</p>
-                    </div>
-                  )}
-                  {Number(product.rental_price_monthly) > 0 && (
-                    <div className="bg-background rounded-md p-2">
-                      <p className="text-lg font-bold">
-                        ฿{Number(product.rental_price_monthly)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{t('perMonth')}</p>
-                    </div>
-                  )}
-                </div>
-                {Number(product.deposit) > 0 && (
-                  <p className="text-xs text-muted-foreground text-center pt-1">
-                    {t('deposit')}: ฿{Number(product.deposit).toLocaleString()}
-                  </p>
-                )}
-              </div>
+            {!isOutOfStock && product.is_bookable && (
+              <Button asChild variant="outline" className="w-full">
+                <Link href={`/appointments/book?product=${product.slug}`}>
+                  {t('bookAppointment')}
+                </Link>
+              </Button>
             )}
           </div>
 
-          {/* Stock */}
-          <div className="flex gap-4 text-sm">
-            {hasPurchase && (
-              <span className="text-muted-foreground">
-                {t('stockBuy')}: {product.stock_qty}
-              </span>
-            )}
-            {hasRental && (
-              <span className="text-muted-foreground">
-                {t('stockRent')}: {product.rental_stock_qty}
-              </span>
-            )}
-          </div>
+          {isOutOfStock ? (
+            <Badge variant="destructive" className="bg-destructive/10 text-destructive hover:bg-destructive/10 text-sm px-3 py-1">
+              {t('outOfStock')}
+            </Badge>
+          ) : hasPurchase ? (
+            <span className="text-sm text-muted-foreground">
+              {t('stockBuy')}: {product.stock_qty}
+            </span>
+          ) : null}
 
           {/* Description */}
           {product.description_en && (
@@ -164,12 +104,12 @@ export default async function ProductDetailPage({
             </div>
           )}
 
-          {/* Add to Cart */}
-          <AddToCartButton
-            product={product}
-            hasPurchase={hasPurchase}
-            hasRental={hasRental}
-          />
+          {hasPurchase && (
+            <AddToCartButton
+              product={product}
+              outOfStock={isOutOfStock}
+            />
+          )}
 
 
         </div>

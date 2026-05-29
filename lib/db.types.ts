@@ -30,13 +30,9 @@ export interface Product {
   description_th: string | null
   description_en: string | null
   price: number
-  rental_price_daily: number | null
-  rental_price_weekly: number | null
-  rental_price_monthly: number | null
-  deposit: number | null
   stock_qty: number
-  rental_stock_qty: number
   is_active: boolean
+  is_bookable: boolean
   created_at: string
   updated_at: string
   images?: ProductImage[]
@@ -59,13 +55,9 @@ export type ProductFormData = {
   description_th: string
   description_en: string
   price: string
-  rental_price_daily: string
-  rental_price_weekly: string
-  rental_price_monthly: string
-  deposit: string
   stock_qty: string
-  rental_stock_qty: string
   is_active: boolean
+  is_bookable: boolean
 }
 
 export type CategoryFormData = {
@@ -78,6 +70,44 @@ export type CategoryFormData = {
   sort_order: string
 }
 
+export interface AppointmentService {
+  id: number
+  type: 'try_on' | 'consultation'
+  name_th: string
+  name_en: string
+  description_th: string | null
+  description_en: string | null
+  duration_minutes: number
+  price: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Appointment {
+  id: number
+  user_id: string
+  service_id: number
+  product_id: number | null
+  appointment_date: string
+  time_slot: string
+  end_time: string
+  phone: string | null
+  notes: string | null
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
+  created_at: string
+  updated_at: string
+}
+
+export type AppointmentFormData = {
+  service_id: string
+  product_id: string
+  appointment_date: string
+  time_slot: string
+  phone: string
+  notes: string
+}
+
 export interface StoreSettings {
   id: number
   store_name_th: string
@@ -88,41 +118,21 @@ export interface StoreSettings {
   bank_name: string | null
   bank_account: string | null
   bank_account_name: string | null
+  theme: string
+  theme_custom_color: string | null
+  business_hours_start: string
+  business_hours_end: string
+  address_th: string | null
+  address_en: string | null
+  email: string | null
+  phone: string | null
+  facebook_url: string | null
+  instagram_url: string | null
+  line_url: string | null
+  tiktok_url: string | null
+  youtube_url: string | null
+  map_url: string | null
   updated_at: string
-}
-
-export interface Rental {
-  id: number
-  order_id: number
-  order_item_id: number | null
-  product_id: number
-  user_id: string
-  status: 'pending' | 'reserved' | 'picked_up' | 'returned' | 'completed' | 'late' | 'cancelled'
-  quantity: number
-  start_date: string
-  end_date: string
-  actual_return_date: string | null
-  total_days: number
-  rental_cost: number
-  deposit_amount: number
-  deposit_paid: boolean
-  deposit_returned: boolean
-  late_fee_per_day: number
-  total_late_fee: number
-  notes: string | null
-  created_at: string
-  updated_at: string
-}
-
-export interface Notification {
-  id: number
-  user_id: string
-  type: 'general' | 'order_update' | 'payment_confirmed' | 'rental_update'
-  title: string
-  message: string | null
-  link: string | null
-  read: boolean
-  created_at: string
 }
 
 export type StoreSettingsFormData = {
@@ -132,6 +142,20 @@ export type StoreSettingsFormData = {
   bank_name: string
   bank_account: string
   bank_account_name: string
+  theme: string
+  theme_custom_color: string
+  business_hours_start: string
+  business_hours_end: string
+  address_th: string
+  address_en: string
+  email: string
+  phone: string
+  facebook_url: string
+  instagram_url: string
+  line_url: string
+  tiktok_url: string
+  youtube_url: string
+  map_url: string
 }
 
 export interface Order {
@@ -159,9 +183,20 @@ export interface OrderItem {
   order_id: number
   product_id: number
   product_name: string
-  type: 'buy' | 'rent'
+  type: 'buy'
   quantity: number
   unit_price: number
   total_price: number
+  created_at: string
+}
+
+export interface Notification {
+  id: number
+  user_id: string
+  type: 'general' | 'order_update' | 'payment_confirmed' | 'appointment_update'
+  title: string
+  message: string | null
+  link: string | null
+  read: boolean
   created_at: string
 }

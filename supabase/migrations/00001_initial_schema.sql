@@ -47,18 +47,22 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Profile policies
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
 CREATE POLICY "Users can view own profile"
   ON public.profiles FOR SELECT
   USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile"
   ON public.profiles FOR UPDATE
   USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can create own profile" ON public.profiles;
 CREATE POLICY "Users can create own profile"
   ON public.profiles FOR INSERT
   WITH CHECK (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
 CREATE POLICY "Admins can view all profiles"
   ON public.profiles FOR SELECT
   USING (public.is_admin());
@@ -79,22 +83,26 @@ CREATE TABLE IF NOT EXISTS public.categories (
 
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Everyone can view categories" ON public.categories;
 CREATE POLICY "Everyone can view categories"
   ON public.categories FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Admins can insert categories" ON public.categories;
 CREATE POLICY "Admins can insert categories"
   ON public.categories FOR INSERT
   WITH CHECK (
     public.is_admin()
   );
 
+DROP POLICY IF EXISTS "Admins can update categories" ON public.categories;
 CREATE POLICY "Admins can update categories"
   ON public.categories FOR UPDATE
   USING (
     public.is_admin()
   );
 
+DROP POLICY IF EXISTS "Admins can delete categories" ON public.categories;
 CREATE POLICY "Admins can delete categories"
   ON public.categories FOR DELETE
   USING (
@@ -111,41 +119,42 @@ CREATE TABLE IF NOT EXISTS public.products (
   description_th TEXT,
   description_en TEXT,
   price DECIMAL(10,2) NOT NULL DEFAULT 0,
-  rental_price_daily DECIMAL(10,2) DEFAULT 0,
-  rental_price_weekly DECIMAL(10,2) DEFAULT 0,
-  rental_price_monthly DECIMAL(10,2) DEFAULT 0,
-  deposit DECIMAL(10,2) DEFAULT 0,
   stock_qty INTEGER NOT NULL DEFAULT 0,
-  rental_stock_qty INTEGER NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT true,
+  is_bookable BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Everyone can view active products" ON public.products;
 CREATE POLICY "Everyone can view active products"
   ON public.products FOR SELECT
   USING (is_active = true);
 
+DROP POLICY IF EXISTS "Admins can view all products" ON public.products;
 CREATE POLICY "Admins can view all products"
   ON public.products FOR SELECT
   USING (
     public.is_admin()
   );
 
+DROP POLICY IF EXISTS "Admins can insert products" ON public.products;
 CREATE POLICY "Admins can insert products"
   ON public.products FOR INSERT
   WITH CHECK (
     public.is_admin()
   );
 
+DROP POLICY IF EXISTS "Admins can update products" ON public.products;
 CREATE POLICY "Admins can update products"
   ON public.products FOR UPDATE
   USING (
     public.is_admin()
   );
 
+DROP POLICY IF EXISTS "Admins can delete products" ON public.products;
 CREATE POLICY "Admins can delete products"
   ON public.products FOR DELETE
   USING (
@@ -164,22 +173,26 @@ CREATE TABLE IF NOT EXISTS public.product_images (
 
 ALTER TABLE public.product_images ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Everyone can view product images" ON public.product_images;
 CREATE POLICY "Everyone can view product images"
   ON public.product_images FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Admins can insert product images" ON public.product_images;
 CREATE POLICY "Admins can insert product images"
   ON public.product_images FOR INSERT
   WITH CHECK (
     public.is_admin()
   );
 
+DROP POLICY IF EXISTS "Admins can update product images" ON public.product_images;
 CREATE POLICY "Admins can update product images"
   ON public.product_images FOR UPDATE
   USING (
     public.is_admin()
   );
 
+DROP POLICY IF EXISTS "Admins can delete product images" ON public.product_images;
 CREATE POLICY "Admins can delete product images"
   ON public.product_images FOR DELETE
   USING (
@@ -197,26 +210,43 @@ CREATE TABLE IF NOT EXISTS public.store_settings (
   bank_name TEXT,
   bank_account TEXT,
   bank_account_name TEXT,
+  theme TEXT NOT NULL DEFAULT 'zinc' CHECK (theme IN ('zinc','rose','blue','green','orange','violet','custom')),
+  theme_custom_color TEXT,
+  business_hours_start TIME NOT NULL DEFAULT '09:00',
+  business_hours_end TIME NOT NULL DEFAULT '17:00',
+  address_th TEXT,
+  address_en TEXT,
+  map_url TEXT,
+  email TEXT,
+  phone TEXT,
+  facebook_url TEXT,
+  instagram_url TEXT,
+  line_url TEXT,
+  tiktok_url TEXT,
+  youtube_url TEXT,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE public.store_settings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Anyone can view store settings" ON public.store_settings;
 CREATE POLICY "Anyone can view store settings"
   ON public.store_settings FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Admins can insert store settings" ON public.store_settings;
 CREATE POLICY "Admins can insert store settings"
   ON public.store_settings FOR INSERT
   WITH CHECK (public.is_admin());
 
+DROP POLICY IF EXISTS "Admins can update store settings" ON public.store_settings;
 CREATE POLICY "Admins can update store settings"
   ON public.store_settings FOR UPDATE
   USING (public.is_admin());
 
 -- Seed default row
-INSERT INTO public.store_settings (id, store_name_th, store_name_en)
-VALUES (1, 'ร้านของฉัน', 'My Store')
+INSERT INTO public.store_settings (id, store_name_th, store_name_en, theme, business_hours_start, business_hours_end)
+VALUES (1, 'ร้านของฉัน', 'My Store', 'zinc', '09:00', '17:00')
 ON CONFLICT (id) DO NOTHING;
 
 -- 6. ORDERS
@@ -241,22 +271,27 @@ CREATE TABLE IF NOT EXISTS public.orders (
 
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own orders" ON public.orders;
 CREATE POLICY "Users can view own orders"
   ON public.orders FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can create orders" ON public.orders;
 CREATE POLICY "Users can create orders"
   ON public.orders FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own orders" ON public.orders;
 CREATE POLICY "Users can update own orders"
   ON public.orders FOR UPDATE
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Admins can view all orders" ON public.orders;
 CREATE POLICY "Admins can view all orders"
   ON public.orders FOR SELECT
   USING (public.is_admin());
 
+DROP POLICY IF EXISTS "Admins can update orders" ON public.orders;
 CREATE POLICY "Admins can update orders"
   ON public.orders FOR UPDATE
   USING (public.is_admin());
@@ -267,7 +302,7 @@ CREATE TABLE IF NOT EXISTS public.order_items (
   order_id BIGINT NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
   product_id BIGINT NOT NULL REFERENCES public.products(id),
   product_name TEXT NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('buy', 'rent')),
+  type TEXT NOT NULL DEFAULT 'buy' CHECK (type = 'buy'),
   quantity INTEGER NOT NULL DEFAULT 1,
   unit_price DECIMAL(10,2) NOT NULL,
   total_price DECIMAL(10,2) NOT NULL,
@@ -276,18 +311,21 @@ CREATE TABLE IF NOT EXISTS public.order_items (
 
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own order items" ON public.order_items;
 CREATE POLICY "Users can view own order items"
   ON public.order_items FOR SELECT
   USING (
     EXISTS (SELECT 1 FROM public.orders WHERE id = order_id AND user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "Users can create order items" ON public.order_items;
 CREATE POLICY "Users can create order items"
   ON public.order_items FOR INSERT
   WITH CHECK (
     EXISTS (SELECT 1 FROM public.orders WHERE id = order_id AND user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "Admins can view all order items" ON public.order_items;
 CREATE POLICY "Admins can view all order items"
   ON public.order_items FOR SELECT
   USING (public.is_admin());
@@ -296,54 +334,87 @@ CREATE POLICY "Admins can view all order items"
 -- UPDATE public.profiles SET role = 'admin'
 -- WHERE id = (SELECT id FROM auth.users WHERE email = 'your-email@example.com');
 
--- 9. RENTALS
-CREATE TABLE IF NOT EXISTS public.rentals (
+-- 9. APPOINTMENT SERVICES
+CREATE TABLE IF NOT EXISTS public.appointment_services (
   id BIGSERIAL PRIMARY KEY,
-  order_id BIGINT NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
-  order_item_id BIGINT REFERENCES public.order_items(id) ON DELETE SET NULL,
-  product_id BIGINT NOT NULL REFERENCES public.products(id),
-  user_id UUID NOT NULL REFERENCES auth.users(id),
-  status TEXT NOT NULL DEFAULT 'pending'
-    CHECK (status IN ('pending','reserved','picked_up','returned','completed','late','cancelled')),
-  quantity INTEGER NOT NULL DEFAULT 1,
-  start_date DATE NOT NULL,
-  end_date DATE NOT NULL,
-  actual_return_date DATE,
-  total_days INTEGER NOT NULL DEFAULT 1,
-  rental_cost DECIMAL(10,2) NOT NULL DEFAULT 0,
-  deposit_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
-  deposit_paid BOOLEAN NOT NULL DEFAULT FALSE,
-  deposit_returned BOOLEAN NOT NULL DEFAULT FALSE,
-  late_fee_per_day DECIMAL(10,2) NOT NULL DEFAULT 0,
-  total_late_fee DECIMAL(10,2) NOT NULL DEFAULT 0,
-  notes TEXT,
+  type TEXT NOT NULL UNIQUE CHECK (type IN ('try_on', 'consultation')),
+  name_th TEXT NOT NULL,
+  name_en TEXT NOT NULL,
+  description_th TEXT,
+  description_en TEXT,
+  duration_minutes INTEGER NOT NULL DEFAULT 60,
+  price DECIMAL(10,2) NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE public.rentals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.appointment_services ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view own rentals"
-  ON public.rentals FOR SELECT
+DROP POLICY IF EXISTS "Anyone can view appointment_services" ON public.appointment_services;
+CREATE POLICY "Anyone can view appointment_services"
+  ON public.appointment_services FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage appointment_services" ON public.appointment_services;
+CREATE POLICY "Admins can manage appointment_services"
+  ON public.appointment_services FOR ALL
+  USING (public.is_admin());
+
+INSERT INTO public.appointment_services (type, name_th, name_en, duration_minutes, price)
+VALUES
+  ('try_on', 'ลองชุด', 'Try-on Appointment', 60, 0),
+  ('consultation', 'ปรึกษา', 'Consultation', 60, 0)
+ON CONFLICT (type) DO NOTHING;
+
+-- 10. APPOINTMENTS
+CREATE TABLE IF NOT EXISTS public.appointments (
+  id BIGSERIAL PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id),
+  service_id BIGINT NOT NULL REFERENCES public.appointment_services(id),
+  product_id BIGINT REFERENCES public.products(id) ON DELETE SET NULL,
+  appointment_date DATE NOT NULL,
+  time_slot TIME NOT NULL,
+  end_time TIME NOT NULL,
+  phone TEXT,
+  notes TEXT,
+  status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_appointments_user ON public.appointments(user_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_date ON public.appointments(appointment_date);
+
+ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own appointments" ON public.appointments;
+CREATE POLICY "Users can view own appointments"
+  ON public.appointments FOR SELECT
   USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can create rentals"
-  ON public.rentals FOR INSERT
+DROP POLICY IF EXISTS "Users can create appointments" ON public.appointments;
+CREATE POLICY "Users can create appointments"
+  ON public.appointments FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can update own rentals"
-  ON public.rentals FOR UPDATE
+DROP POLICY IF EXISTS "Users can update own appointments" ON public.appointments;
+CREATE POLICY "Users can update own appointments"
+  ON public.appointments FOR UPDATE
   USING (auth.uid() = user_id);
 
-CREATE POLICY "Admins can view all rentals"
-  ON public.rentals FOR SELECT
+DROP POLICY IF EXISTS "Admins can view all appointments" ON public.appointments;
+CREATE POLICY "Admins can view all appointments"
+  ON public.appointments FOR SELECT
   USING (public.is_admin());
 
-CREATE POLICY "Admins can update rentals"
-  ON public.rentals FOR UPDATE
+DROP POLICY IF EXISTS "Admins can manage appointments" ON public.appointments;
+CREATE POLICY "Admins can manage appointments"
+  ON public.appointments FOR ALL
   USING (public.is_admin());
 
--- 10. STOCK MANAGEMENT RPC
+-- 11. STOCK MANAGEMENT RPC
 CREATE OR REPLACE FUNCTION public.decrement_stock(
   p_product_id BIGINT,
   p_field TEXT,
@@ -355,11 +426,6 @@ BEGIN
   IF p_field = 'stock_qty' THEN
     UPDATE public.products
     SET stock_qty = GREATEST(0, stock_qty - p_qty),
-        updated_at = NOW()
-    WHERE id = p_product_id;
-  ELSIF p_field = 'rental_stock_qty' THEN
-    UPDATE public.products
-    SET rental_stock_qty = GREATEST(0, rental_stock_qty - p_qty),
         updated_at = NOW()
     WHERE id = p_product_id;
   END IF;
@@ -379,20 +445,15 @@ BEGIN
     SET stock_qty = stock_qty + p_qty,
         updated_at = NOW()
     WHERE id = p_product_id;
-  ELSIF p_field = 'rental_stock_qty' THEN
-    UPDATE public.products
-    SET rental_stock_qty = rental_stock_qty + p_qty,
-        updated_at = NOW()
-    WHERE id = p_product_id;
   END IF;
 END;
 $$;
 
--- 11. NOTIFICATIONS
+-- 12. NOTIFICATIONS
 CREATE TABLE IF NOT EXISTS public.notifications (
   id BIGSERIAL PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id),
-  type TEXT NOT NULL DEFAULT 'general' CHECK (type IN ('general','order_update','payment_confirmed','rental_update')),
+  type TEXT NOT NULL DEFAULT 'general' CHECK (type IN ('general','order_update','payment_confirmed','appointment_update')),
   title TEXT NOT NULL,
   message TEXT,
   link TEXT,
@@ -402,14 +463,17 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own notifications" ON public.notifications;
 CREATE POLICY "Users can view own notifications"
   ON public.notifications FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own notifications" ON public.notifications;
 CREATE POLICY "Users can update own notifications"
   ON public.notifications FOR UPDATE
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Admins can create notifications" ON public.notifications;
 CREATE POLICY "Admins can create notifications"
   ON public.notifications FOR INSERT
   WITH CHECK (public.is_admin());

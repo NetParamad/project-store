@@ -9,7 +9,7 @@ export function CartButton() {
   const { totalItems } = useCart()
 
   return (
-    <Button asChild variant="ghost" size="icon" className="relative">
+    <Button asChild variant="ghost" size="icon" className="relative hidden sm:inline-flex">
       <Link href="/cart">
         <ShoppingCart size={18} />
         {totalItems > 0 && (

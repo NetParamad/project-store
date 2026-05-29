@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { useTranslations, useLocale } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import type { StoreSettings, StoreSettingsFormData } from '@/lib/db.types'
 import { Button } from '@/components/ui/button'
@@ -14,8 +15,11 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { Upload, Trash2 } from 'lucide-react'
+import { Upload, Trash2, Check } from 'lucide-react'
 import { toast } from 'sonner'
+import { COLOR_THEMES, useColorTheme } from '@/components/color-theme-provider'
+import type { ColorTheme } from '@/components/color-theme-provider'
+import { hexToHsl } from '@/lib/color'
 
 interface Props {
   initialData: StoreSettings | null
@@ -23,6 +27,8 @@ interface Props {
 
 export function SettingsForm({ initialData }: Props) {
   const router = useRouter()
+  const t = useTranslations('admin.settingsForm')
+  const { setTheme: applyColorTheme } = useColorTheme()
   const [loading, setLoading] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [uploadingQR, setUploadingQR] = useState(false)
@@ -36,6 +42,20 @@ export function SettingsForm({ initialData }: Props) {
     bank_name: '',
     bank_account: '',
     bank_account_name: '',
+    theme: 'zinc',
+    theme_custom_color: '',
+    business_hours_start: '09:00',
+    business_hours_end: '17:00',
+    address_th: '',
+    address_en: '',
+    email: '',
+    phone: '',
+    facebook_url: '',
+    instagram_url: '',
+    line_url: '',
+    tiktok_url: '',
+    youtube_url: '',
+    map_url: '',
   })
 
   useEffect(() => {
@@ -47,6 +67,20 @@ export function SettingsForm({ initialData }: Props) {
         bank_name: initialData.bank_name ?? '',
         bank_account: initialData.bank_account ?? '',
         bank_account_name: initialData.bank_account_name ?? '',
+        theme: initialData.theme ?? 'zinc',
+        theme_custom_color: initialData.theme_custom_color ?? '',
+        business_hours_start: initialData.business_hours_start ?? '09:00',
+        business_hours_end: initialData.business_hours_end ?? '17:00',
+        address_th: initialData.address_th ?? '',
+        address_en: initialData.address_en ?? '',
+        email: initialData.email ?? '',
+        phone: initialData.phone ?? '',
+        facebook_url: initialData.facebook_url ?? '',
+        instagram_url: initialData.instagram_url ?? '',
+        line_url: initialData.line_url ?? '',
+        tiktok_url: initialData.tiktok_url ?? '',
+        youtube_url: initialData.youtube_url ?? '',
+        map_url: initialData.map_url ?? '',
       })
       setLogoUrl(initialData.logo_url)
       setQrUrl(initialData.promptpay_qr_url)
@@ -64,7 +98,7 @@ export function SettingsForm({ initialData }: Props) {
       .upload(filePath, file)
 
     if (uploadError) {
-      toast.error('Upload failed')
+      toast.error(t('uploadFailed'))
       return null
     }
 
@@ -83,7 +117,7 @@ export function SettingsForm({ initialData }: Props) {
     const url = await uploadFile(file, 'logos')
     if (url) {
       setLogoUrl(url)
-      toast.success('Logo uploaded!')
+      toast.success(t('logoUploaded'))
     }
     setUploadingLogo(false)
   }
@@ -96,7 +130,7 @@ export function SettingsForm({ initialData }: Props) {
     const url = await uploadFile(file, 'promptpay')
     if (url) {
       setQrUrl(url)
-      toast.success('PromptPay QR uploaded!')
+      toast.success(t('qrUploaded'))
     }
     setUploadingQR(false)
   }
@@ -118,16 +152,37 @@ export function SettingsForm({ initialData }: Props) {
           bank_name: form.bank_name || null,
           bank_account: form.bank_account || null,
           bank_account_name: form.bank_account_name || null,
+          theme: form.theme || 'zinc',
+          theme_custom_color: form.theme_custom_color || null,
+          business_hours_start: form.business_hours_start || '09:00',
+          business_hours_end: form.business_hours_end || '17:00',
+          address_th: form.address_th || null,
+          address_en: form.address_en || null,
+          email: form.email || null,
+          phone: form.phone || null,
+          facebook_url: form.facebook_url || null,
+          instagram_url: form.instagram_url || null,
+          line_url: form.line_url || null,
+          tiktok_url: form.tiktok_url || null,
+          youtube_url: form.youtube_url || null,
+          map_url: form.map_url || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', 1)
 
       if (error) throw error
-      toast.success('Settings saved!')
+
+      if (form.theme === 'custom' && form.theme_custom_color) {
+        applyColorTheme('custom', form.theme_custom_color)
+      } else {
+        applyColorTheme((form.theme || 'zinc') as ColorTheme)
+      }
+      toast.success(t('settingsSaved'))
       router.refresh()
     } catch (err) {
-      console.error(err)
-      toast.error('Failed to save settings')
+      console.error('Settings save failed:', err)
+      const message = err instanceof Error ? err.message : typeof err === 'object' && err !== null ? JSON.stringify(err) : String(err)
+      toast.error(message || t('saveFailed'))
     } finally {
       setLoading(false)
     }
@@ -137,26 +192,28 @@ export function SettingsForm({ initialData }: Props) {
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Store Information</CardTitle>
+          <CardTitle>{t('storeInfo')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="store_name_th">Store Name (Thai)</Label>
+              <Label htmlFor="store_name_th">{t('storeNameThai')} <span className="text-destructive">*</span></Label>
               <Input
                 id="store_name_th"
                 value={form.store_name_th}
                 onChange={(e) => setForm({ ...form, store_name_th: e.target.value })}
                 placeholder="ชื่อร้าน"
+                required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="store_name_en">Store Name (English)</Label>
+              <Label htmlFor="store_name_en">{t('storeNameEn')} <span className="text-destructive">*</span></Label>
               <Input
                 id="store_name_en"
                 value={form.store_name_en}
                 onChange={(e) => setForm({ ...form, store_name_en: e.target.value })}
                 placeholder="Store name"
+                required
               />
             </div>
           </div>
@@ -164,23 +221,25 @@ export function SettingsForm({ initialData }: Props) {
           <Separator />
 
           <div className="space-y-2">
-            <Label>Store Logo</Label>
-            <div className="flex items-center gap-4">
+            <Label>{t('storeLogo')}</Label>
+            <div className="flex flex-col sm:flex-row items-center gap-4">
               {logoUrl && (
-                <div className="relative h-16 w-16 rounded-md border bg-muted overflow-hidden">
+                <div className="relative h-16 w-16 shrink-0 rounded-md border bg-muted overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={logoUrl}
-                    alt="Logo"
+                    alt={t('logoAlt')}
                     className="h-full w-full object-cover"
                   />
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setLogoUrl(null)}
-                    className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-red-500 text-white"
+                    className="absolute top-0.5 right-0.5 h-5 w-5 rounded-full bg-red-500 text-white hover:bg-red-600 hover:text-white"
                   >
                     <Trash2 size={12} />
-                  </button>
+                  </Button>
                 </div>
               )}
               <Label
@@ -188,9 +247,9 @@ export function SettingsForm({ initialData }: Props) {
                 className="flex items-center gap-2 px-4 py-2 rounded-md border border-input bg-background text-sm font-medium cursor-pointer hover:bg-accent transition-colors"
               >
                 <Upload size={16} />
-                {logoUrl ? 'Change Logo' : 'Upload Logo'}
+                {logoUrl ? t('changeLogo') : t('uploadLogo')}
               </Label>
-              <input
+              <Input
                 id="logo-upload"
                 type="file"
                 accept="image/*"
@@ -199,7 +258,7 @@ export function SettingsForm({ initialData }: Props) {
                 disabled={uploadingLogo}
               />
               {uploadingLogo && (
-                <span className="text-sm text-muted-foreground">Uploading...</span>
+                <span className="text-sm text-muted-foreground">{t('uploading')}</span>
               )}
             </div>
           </div>
@@ -208,11 +267,226 @@ export function SettingsForm({ initialData }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>PromptPay</CardTitle>
+          <CardTitle>{t('businessHours')}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="business_hours_start">{t('businessHoursStart')}</Label>
+              <Input
+                id="business_hours_start"
+                type="time"
+                value={form.business_hours_start}
+                onChange={(e) => setForm({ ...form, business_hours_start: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="business_hours_end">{t('businessHoursEnd')}</Label>
+              <Input
+                id="business_hours_end"
+                type="time"
+                value={form.business_hours_end}
+                onChange={(e) => setForm({ ...form, business_hours_end: e.target.value })}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('contactInfo')}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="address_th">{t('addressThai')}</Label>
+              <Input
+                id="address_th"
+                value={form.address_th}
+                onChange={(e) => setForm({ ...form, address_th: e.target.value })}
+                placeholder="123 ถนนร้านค้า กรุงเทพฯ 10110"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address_en">{t('addressEn')}</Label>
+              <Input
+                id="address_en"
+                value={form.address_en}
+                onChange={(e) => setForm({ ...form, address_en: e.target.value })}
+                placeholder="123 Store Street, Bangkok 10110"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">{t('email')} <span className="text-destructive">*</span></Label>
+              <Input
+                id="email"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="contact@mystore.com"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">{t('phone')} <span className="text-destructive">*</span></Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                placeholder="+66 12 345 6789"
+                required
+                pattern="[0-9]{10}"
+                title="กรุณากรอกเบอร์โทร 10 หลัก"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="map_url">{t('mapUrl')}</Label>
+              <Input
+                id="map_url"
+                value={form.map_url}
+                onChange={(e) => setForm({ ...form, map_url: e.target.value })}
+                placeholder="https://maps.google.com/?q=13.7563,100.5018"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('socialMedia')}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="facebook_url">{t('facebookUrl')}</Label>
+              <Input
+                id="facebook_url"
+                value={form.facebook_url}
+                onChange={(e) => setForm({ ...form, facebook_url: e.target.value })}
+                placeholder="https://facebook.com/mystore"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="instagram_url">{t('instagramUrl')}</Label>
+              <Input
+                id="instagram_url"
+                value={form.instagram_url}
+                onChange={(e) => setForm({ ...form, instagram_url: e.target.value })}
+                placeholder="https://instagram.com/mystore"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="line_url">{t('lineUrl')}</Label>
+              <Input
+                id="line_url"
+                value={form.line_url}
+                onChange={(e) => setForm({ ...form, line_url: e.target.value })}
+                placeholder="https://line.me/R/ti/p/@mystore"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tiktok_url">{t('tiktokUrl')}</Label>
+              <Input
+                id="tiktok_url"
+                value={form.tiktok_url}
+                onChange={(e) => setForm({ ...form, tiktok_url: e.target.value })}
+                placeholder="https://tiktok.com/@mystore"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="youtube_url">{t('youtubeUrl')}</Label>
+              <Input
+                id="youtube_url"
+                value={form.youtube_url}
+                onChange={(e) => setForm({ ...form, youtube_url: e.target.value })}
+                placeholder="https://youtube.com/@mystore"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('colorTheme')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
+            {COLOR_THEMES.map((ct) => {
+              const isSelected = form.theme === ct.value
+              return (
+                <Button
+                  key={ct.value}
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    if (ct.value === 'custom') {
+                      setForm({ ...form, theme: 'custom' })
+                    } else {
+                      setForm({ ...form, theme: ct.value, theme_custom_color: '' })
+                    }
+                  }}
+                  className={`flex-col items-center gap-2 p-3 h-auto ${
+                    isSelected
+                      ? 'border-primary ring-2 ring-primary/20'
+                      : ''
+                  }`}
+                >
+                  <div className="flex gap-1 flex-wrap justify-center">
+                    {ct.swatches.map((swatch, i) => (
+                      <div key={i} className={`w-4 h-4 rounded-full ${swatch}`} />
+                    ))}
+                  </div>
+                  <span className="text-xs font-medium">
+                    {t('theme' + ct.value.charAt(0).toUpperCase() + ct.value.slice(1))}
+                  </span>
+                </Button>
+              )
+            })}
+          </div>
+
+          {form.theme === 'custom' && (
+            <div className="mt-4 space-y-3">
+              <Label>{t('themeCustomColor')}</Label>
+              <div className="flex items-center gap-3">
+                <Input
+                  type="color"
+                  value={form.theme_custom_color || '#e11d48'}
+                  onChange={(e) => {
+                    const hex = e.target.value
+                    setForm({ ...form, theme_custom_color: hex })
+                    try {
+                      const { h, s, l } = hexToHsl(hex)
+                      document.documentElement.style.setProperty('--primary', `${h} ${s}% ${l}%`)
+                      document.documentElement.style.setProperty('--primary-foreground', l > 55 ? '0 0% 10%' : '0 0% 98%')
+                      document.documentElement.style.setProperty('--ring', `${h} ${s}% ${l}%`)
+                      document.documentElement.setAttribute('data-color-theme', 'custom')
+                    } catch {}
+                  }}
+                  className="h-10 w-10 p-0.5 cursor-pointer"
+                />
+                <span className="text-xs font-mono text-muted-foreground">
+                  {form.theme_custom_color || '#e11d48'}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">{t('themeCustomHint')}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('promptpay')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="promptpay_number">PromptPay Number</Label>
+            <Label htmlFor="promptpay_number">{t('promptpayNumber')}</Label>
             <Input
               id="promptpay_number"
               value={form.promptpay_number}
@@ -222,23 +496,25 @@ export function SettingsForm({ initialData }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label>PromptPay QR Code</Label>
-            <div className="flex items-center gap-4">
+            <Label>{t('promptpayQr')}</Label>
+            <div className="flex flex-col sm:flex-row items-center gap-4">
               {qrUrl && (
-                <div className="relative h-24 w-24 rounded-md border bg-muted overflow-hidden">
+                <div className="relative h-24 w-24 shrink-0 rounded-md border bg-muted overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={qrUrl}
-                    alt="PromptPay QR"
+                    alt={t('qrAlt')}
                     className="h-full w-full object-cover"
                   />
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setQrUrl(null)}
-                    className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-red-500 text-white"
+                    className="absolute top-0.5 right-0.5 h-5 w-5 rounded-full bg-red-500 text-white hover:bg-red-600 hover:text-white"
                   >
                     <Trash2 size={12} />
-                  </button>
+                  </Button>
                 </div>
               )}
               <Label
@@ -246,9 +522,9 @@ export function SettingsForm({ initialData }: Props) {
                 className="flex items-center gap-2 px-4 py-2 rounded-md border border-input bg-background text-sm font-medium cursor-pointer hover:bg-accent transition-colors"
               >
                 <Upload size={16} />
-                {qrUrl ? 'Change QR' : 'Upload QR'}
+                {qrUrl ? t('changeQr') : t('uploadQr')}
               </Label>
-              <input
+              <Input
                 id="qr-upload"
                 type="file"
                 accept="image/*"
@@ -257,7 +533,7 @@ export function SettingsForm({ initialData }: Props) {
                 disabled={uploadingQR}
               />
               {uploadingQR && (
-                <span className="text-sm text-muted-foreground">Uploading...</span>
+                <span className="text-sm text-muted-foreground">{t('uploading')}</span>
               )}
             </div>
           </div>
@@ -266,12 +542,12 @@ export function SettingsForm({ initialData }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Bank Account</CardTitle>
+          <CardTitle>{t('bankAccount')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="bank_name">Bank Name</Label>
+              <Label htmlFor="bank_name">{t('bankName')}</Label>
               <Input
                 id="bank_name"
                 value={form.bank_name}
@@ -280,7 +556,7 @@ export function SettingsForm({ initialData }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="bank_account">Account Number</Label>
+              <Label htmlFor="bank_account">{t('accountNumber')}</Label>
               <Input
                 id="bank_account"
                 value={form.bank_account}
@@ -290,7 +566,7 @@ export function SettingsForm({ initialData }: Props) {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="bank_account_name">Account Name</Label>
+            <Label htmlFor="bank_account_name">{t('accountName')}</Label>
             <Input
               id="bank_account_name"
               value={form.bank_account_name}
@@ -303,7 +579,7 @@ export function SettingsForm({ initialData }: Props) {
 
       <div className="flex items-center gap-3 pb-8">
         <Button type="submit" disabled={loading}>
-          {loading ? 'Saving...' : 'Save Settings'}
+          {loading ? t('saving') : t('saveSettings')}
         </Button>
       </div>
     </form>
