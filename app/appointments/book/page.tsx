@@ -156,7 +156,7 @@ function BookAppointmentContent() {
           user_id: user.id,
           type: 'appointment_update',
           title: 'จองนัดหมายสำเร็จ!',
-          message: `คุณได้จอง ${selectedService.name_th} ในวันที่ ${selectedDate} เวลา ${selectedTime.substring(0, 5)}`,
+          message: `คุณได้จอง ${selectedService.name} ในวันที่ ${selectedDate} เวลา ${selectedTime.substring(0, 5)}`,
           link: '/appointments',
         })
       } catch {} // best-effort
@@ -201,7 +201,7 @@ function BookAppointmentContent() {
               <SelectContent>
                 {services.map(s => (
                   <SelectItem key={s.id} value={s.id.toString()}>
-                    {s.name_th}
+                    {s.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -219,7 +219,7 @@ function BookAppointmentContent() {
                   <SelectItem value="none">—</SelectItem>
                   {products.map(p => (
                     <SelectItem key={p.id} value={p.id.toString()}>
-                      {p.name_th}
+                      {p.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

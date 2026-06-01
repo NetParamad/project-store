@@ -70,11 +70,9 @@ CREATE POLICY "Admins can view all profiles"
 -- 2. CATEGORIES
 CREATE TABLE IF NOT EXISTS public.categories (
   id BIGSERIAL PRIMARY KEY,
-  name_th TEXT NOT NULL,
-  name_en TEXT NOT NULL,
+  name TEXT NOT NULL,
   slug TEXT NOT NULL UNIQUE,
-  description_th TEXT,
-  description_en TEXT,
+  description TEXT,
   parent_id BIGINT REFERENCES public.categories(id) ON DELETE SET NULL,
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -113,11 +111,9 @@ CREATE POLICY "Admins can delete categories"
 CREATE TABLE IF NOT EXISTS public.products (
   id BIGSERIAL PRIMARY KEY,
   category_id BIGINT REFERENCES public.categories(id) ON DELETE SET NULL,
-  name_th TEXT NOT NULL,
-  name_en TEXT NOT NULL,
+  name TEXT NOT NULL,
   slug TEXT NOT NULL UNIQUE,
-  description_th TEXT,
-  description_en TEXT,
+  description TEXT,
   price DECIMAL(10,2) NOT NULL DEFAULT 0,
   stock_qty INTEGER NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT true,
@@ -202,8 +198,7 @@ CREATE POLICY "Admins can delete product images"
 -- 5. STORE SETTINGS
 CREATE TABLE IF NOT EXISTS public.store_settings (
   id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
-  store_name_th TEXT NOT NULL DEFAULT '',
-  store_name_en TEXT NOT NULL DEFAULT '',
+  store_name TEXT NOT NULL DEFAULT '',
   logo_url TEXT,
   promptpay_number TEXT,
   promptpay_qr_url TEXT,
@@ -214,8 +209,7 @@ CREATE TABLE IF NOT EXISTS public.store_settings (
   theme_custom_color TEXT,
   business_hours_start TIME NOT NULL DEFAULT '09:00',
   business_hours_end TIME NOT NULL DEFAULT '17:00',
-  address_th TEXT,
-  address_en TEXT,
+  address TEXT,
   map_url TEXT,
   email TEXT,
   phone TEXT,
@@ -245,8 +239,8 @@ CREATE POLICY "Admins can update store settings"
   USING (public.is_admin());
 
 -- Seed default row
-INSERT INTO public.store_settings (id, store_name_th, store_name_en, theme, business_hours_start, business_hours_end)
-VALUES (1, 'ร้านของฉัน', 'My Store', 'zinc', '09:00', '17:00')
+INSERT INTO public.store_settings (id, store_name, theme, business_hours_start, business_hours_end)
+VALUES (1, 'ร้านของฉัน', 'zinc', '09:00', '17:00')
 ON CONFLICT (id) DO NOTHING;
 
 -- 6. ORDERS
@@ -338,10 +332,8 @@ CREATE POLICY "Admins can view all order items"
 CREATE TABLE IF NOT EXISTS public.appointment_services (
   id BIGSERIAL PRIMARY KEY,
   type TEXT NOT NULL UNIQUE CHECK (type IN ('try_on', 'consultation')),
-  name_th TEXT NOT NULL,
-  name_en TEXT NOT NULL,
-  description_th TEXT,
-  description_en TEXT,
+  name TEXT NOT NULL,
+  description TEXT,
   duration_minutes INTEGER NOT NULL DEFAULT 60,
   price DECIMAL(10,2) NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT true,
@@ -361,10 +353,10 @@ CREATE POLICY "Admins can manage appointment_services"
   ON public.appointment_services FOR ALL
   USING (public.is_admin());
 
-INSERT INTO public.appointment_services (type, name_th, name_en, duration_minutes, price)
+INSERT INTO public.appointment_services (type, name, duration_minutes, price)
 VALUES
-  ('try_on', 'ลองชุด', 'Try-on Appointment', 60, 0),
-  ('consultation', 'ปรึกษา', 'Consultation', 60, 0)
+  ('try_on', 'ลองชุด', 60, 0),
+  ('consultation', 'ปรึกษา', 60, 0)
 ON CONFLICT (type) DO NOTHING;
 
 -- 10. APPOINTMENTS

@@ -70,10 +70,7 @@ export default async function ProductsPage() {
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-medium truncate">{product.name_en}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {product.name_th}
-                        </p>
+                        <p className="font-medium truncate">{product.name}</p>
                       </div>
                     </div>
                   </TableCell>
@@ -101,9 +98,9 @@ export default async function ProductsPage() {
                   </TableCell>
                   <TableCell className="px-4 py-3">
                     {product.is_bookable ? (
-                      <Badge variant="outline" className="border-blue-300 text-blue-700">Yes</Badge>
+                      <Badge variant="outline" className="border-blue-300 text-blue-700">ใช่</Badge>
                     ) : (
-                      <Badge variant="secondary">No</Badge>
+                      <Badge variant="secondary">ไม่</Badge>
                     )}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-right">

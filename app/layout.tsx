@@ -8,17 +8,25 @@ import { Footer } from "@/components/footer";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { CartProvider } from "@/components/cart-provider";
 import { ColorThemeProvider } from "@/components/color-theme-provider";
+import { createClient } from "@/lib/supabase/server";
+import { getStoreSettings } from "@/lib/supabase/queries";
 import "./globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
   : "http://localhost:3000";
 
-export const metadata: Metadata = {
-  metadataBase: new URL(defaultUrl),
-  title: "Project Store",
-  description: "Your personal project store",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const supabase = await createClient()
+  const settings = await getStoreSettings(supabase)
+  const storeName = settings?.store_name || 'Project Store'
+
+  return {
+    metadataBase: new URL(defaultUrl),
+    title: storeName,
+    description: `ยินดีต้อนรับสู่ ${storeName}`,
+  }
+}
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

@@ -30,12 +30,11 @@ export default async function CategoriesPage() {
 
       <Card>
         <CardContent className="p-0">
-        <Table style={{ minWidth: 700 }}>
+        <Table style={{ minWidth: 600 }}>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead className="px-4 py-3 font-medium">ID</TableHead>
-              <TableHead className="px-4 py-3 font-medium">ชื่อ (TH)</TableHead>
-              <TableHead className="px-4 py-3 font-medium">ชื่อ (EN)</TableHead>
+              <TableHead className="px-4 py-3 font-medium">ชื่อ</TableHead>
               <TableHead className="px-4 py-3 font-medium">Slug</TableHead>
               <TableHead className="px-4 py-3 font-medium">ลำดับ</TableHead>
               <TableHead className="px-4 py-3 text-right font-medium">จัดการ</TableHead>
@@ -44,17 +43,16 @@ export default async function CategoriesPage() {
           <TableBody>
             {categories.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                   ไม่มีหมวดหมู่
                 </TableCell>
               </TableRow>
             ) : (
               categories.map((category) => (
                 <TableRow key={category.id} className="hover:bg-accent/50 transition-colors">
-                  <TableCell className="px-4 py-3 font-mono text-xs">{category.id}</TableCell>
-                  <TableCell className="px-4 py-3">{category.name_th}</TableCell>
-                  <TableCell className="px-4 py-3">{category.name_en}</TableCell>
-                  <TableCell className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                  <TableCell className="px-4 py-3">{category.id}</TableCell>
+                  <TableCell className="px-4 py-3 font-medium">{category.name}</TableCell>
+                  <TableCell className="px-4 py-3 text-muted-foreground text-xs font-mono">
                     {category.slug}
                   </TableCell>
                   <TableCell className="px-4 py-3">{category.sort_order}</TableCell>

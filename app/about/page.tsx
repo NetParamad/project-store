@@ -9,7 +9,7 @@ export default async function AboutPage() {
     getStoreSettings(supabase),
   ]);
 
-  const storeName = settings?.store_name_th || "My Store";
+  const storeName = settings?.store_name || "My Store";
 
   const features = [
     {

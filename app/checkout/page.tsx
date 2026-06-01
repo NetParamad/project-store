@@ -65,7 +65,7 @@ export default function CheckoutPage() {
 
       const orderItems = items.map((item) => ({
         product_id: item.product.id,
-        product_name: item.product.name_th,
+        product_name: item.product.name,
         type: 'buy' as const,
         quantity: item.quantity,
         unit_price: item.product.price,
@@ -301,7 +301,7 @@ export default function CheckoutPage() {
             {items.map((item) => (
               <div key={item.id} className="flex justify-between text-sm">
                 <div className="flex-1 min-w-0">
-                  <p className="truncate">{item.product.name_th}</p>
+                  <p className="truncate">{item.product.name}</p>
                   <p className="text-muted-foreground text-xs">
                     BUY x{item.quantity}
                   </p>

@@ -12,7 +12,7 @@ export async function ProductCard({ product }: Props) {
   const primaryImage = product.images?.find((img) => img.is_primary) ?? product.images?.[0]
   const hasPurchase = Number(product.price) > 0 && Number(product.stock_qty) > 0
   const isOutOfStock = Number(product.stock_qty) <= 0
-  const displayName = product.name_th
+  const displayName = product.name
 
   return (
     <Link
@@ -27,7 +27,7 @@ export async function ProductCard({ product }: Props) {
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={primaryImage.url}
-            alt={product.name_en}
+            alt={product.name}
             className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (

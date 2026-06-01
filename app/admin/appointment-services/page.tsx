@@ -47,10 +47,8 @@ export default function AdminAppointmentServicesPage() {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const [formNameTh, setFormNameTh] = useState('')
-  const [formNameEn, setFormNameEn] = useState('')
-  const [formDescTh, setFormDescTh] = useState('')
-  const [formDescEn, setFormDescEn] = useState('')
+  const [formName, setFormName] = useState('')
+  const [formDesc, setFormDesc] = useState('')
   const [formType, setFormType] = useState('try_on')
   const [formDuration, setFormDuration] = useState('30')
   const [formPrice, setFormPrice] = useState('0')
@@ -70,10 +68,8 @@ export default function AdminAppointmentServicesPage() {
 
   function openCreate() {
     setEditing(null)
-    setFormNameTh('')
-    setFormNameEn('')
-    setFormDescTh('')
-    setFormDescEn('')
+    setFormName('')
+    setFormDesc('')
     setFormType('try_on')
     setFormDuration('30')
     setFormPrice('0')
@@ -83,10 +79,8 @@ export default function AdminAppointmentServicesPage() {
 
   function openEdit(svc: AppointmentService) {
     setEditing(svc)
-    setFormNameTh(svc.name_th)
-    setFormNameEn(svc.name_en)
-    setFormDescTh(svc.description_th || '')
-    setFormDescEn(svc.description_en || '')
+    setFormName(svc.name)
+    setFormDesc(svc.description || '')
     setFormType(svc.type)
     setFormDuration(svc.duration_minutes.toString())
     setFormPrice((svc.price ?? 0).toString())
@@ -95,15 +89,13 @@ export default function AdminAppointmentServicesPage() {
   }
 
   async function handleSave() {
-    if (!formNameTh || !formNameEn || !formDuration) return
+    if (!formName || !formDuration) return
     setSaving(true)
     try {
       const supabase = createClient()
       const payload = {
-        name_th: formNameTh,
-        name_en: formNameEn,
-        description_th: formDescTh || null,
-        description_en: formDescEn || null,
+        name: formName,
+        description: formDesc || null,
         type: formType,
         duration_minutes: parseInt(formDuration),
         price: parseFloat(formPrice) || 0,
@@ -164,11 +156,10 @@ export default function AdminAppointmentServicesPage() {
           </TableHeader>
           <TableBody>
             {services.map((svc) => {
-              const name = svc.name_th
               return (
                 <TableRow key={svc.id} className="hover:bg-accent/50 transition-colors">
                   <TableCell className="px-4 py-3">{svc.id}</TableCell>
-                  <TableCell className="px-4 py-3 font-medium">{name}</TableCell>
+                  <TableCell className="px-4 py-3 font-medium">{svc.name}</TableCell>
                   <TableCell className="px-4 py-3">
                     <Badge variant="secondary" className="rounded-full">
                       {typeLabels[svc.type] || svc.type}
@@ -209,20 +200,12 @@ export default function AdminAppointmentServicesPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>ชื่อ (ไทย) <span className="text-destructive">*</span></Label>
-                <Input value={formNameTh} onChange={(e) => setFormNameTh(e.target.value)} required />
+                <Label>ชื่อ <span className="text-destructive">*</span></Label>
+                <Input value={formName} onChange={(e) => setFormName(e.target.value)} required />
               </div>
               <div className="space-y-2">
-                <Label>Name (EN) <span className="text-destructive">*</span></Label>
-                <Input value={formNameEn} onChange={(e) => setFormNameEn(e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label>คำอธิบาย (ไทย)</Label>
-                <Textarea value={formDescTh} onChange={(e) => setFormDescTh(e.target.value)} rows={2} />
-              </div>
-              <div className="space-y-2">
-                <Label>Description (EN)</Label>
-                <Textarea value={formDescEn} onChange={(e) => setFormDescEn(e.target.value)} rows={2} />
+                <Label>คำอธิบาย</Label>
+                <Textarea value={formDesc} onChange={(e) => setFormDesc(e.target.value)} rows={2} />
               </div>
               <div className="space-y-2">
                 <Label>ประเภท <span className="text-destructive">*</span></Label>
@@ -249,7 +232,7 @@ export default function AdminAppointmentServicesPage() {
                 <Label htmlFor="is_active" className="mb-0">เปิดใช้งาน</Label>
               </div>
             </div>
-            <Button onClick={handleSave} disabled={saving || !formNameTh || !formNameEn} className="w-full">
+            <Button onClick={handleSave} disabled={saving || !formName} className="w-full">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'บันทึก'}
             </Button>
           </div>

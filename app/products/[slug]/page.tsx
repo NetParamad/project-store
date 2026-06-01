@@ -23,7 +23,7 @@ export default async function ProductDetailPage({
 
   const hasPurchase = Number(product.price) > 0 && Number(product.stock_qty) > 0
   const isOutOfStock = Number(product.stock_qty) <= 0
-  const productName = product.name_th
+  const productName = product.name
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
@@ -75,11 +75,11 @@ export default async function ProductDetailPage({
           ) : null}
 
           {/* Description */}
-          {product.description_th && (
+          {product.description && (
             <div className="space-y-2">
               <h3 className="font-medium">รายละเอียด</h3>
               <p className="text-sm text-muted-foreground whitespace-pre-line">
-                {product.description_th}
+                {product.description}
               </p>
             </div>
           )}

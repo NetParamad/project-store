@@ -73,8 +73,8 @@ export default function AppointmentsPage() {
       ) : (
         <div className="space-y-3">
           {appointments.map((apt) => {
-            const serviceName = apt.service?.name_th || apt.service?.name_en || ''
-            const productName = apt.product ? (apt.product.name_th || apt.product.name_en) : null
+            const serviceName = apt.service?.name || ''
+            const productName = apt.product ? apt.product.name : null
             return (
               <Card key={apt.id}>
                 <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">

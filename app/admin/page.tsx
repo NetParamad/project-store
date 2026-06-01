@@ -104,7 +104,7 @@ export default async function AdminDashboard() {
                   <div key={product.name} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground w-5">#{idx + 1}</span>
-                      <span className="truncate max-w-[120px] sm:max-w-[200px]">{product.name_th}</span>
+                      <span className="truncate max-w-[120px] sm:max-w-[200px]">{product.name}</span>
                     </div>
                     <div className="flex items-center gap-3 text-muted-foreground">
                       <span>ขายแล้ว {product.qty}</span>

@@ -68,7 +68,7 @@ export default function AdminAppointmentsPage() {
           </TableHeader>
           <TableBody>
             {appointments.map((apt) => {
-              const serviceName = apt.service?.name_th || apt.service?.name_en || ''
+              const serviceName = apt.service?.name || ''
               const customerName = apt.phone || '-'
               return (
                 <TableRow key={apt.id} className="hover:bg-accent/50 transition-colors">

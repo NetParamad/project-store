@@ -58,7 +58,7 @@ export default function CartPage() {
                     href={`/products/${item.product.slug}`}
                     className="font-medium text-sm hover:underline line-clamp-1"
                   >
-                    {item.product.name_th}
+                    {item.product.name}
                   </Link>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="secondary" className="rounded uppercase">

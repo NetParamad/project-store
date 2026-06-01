@@ -58,7 +58,7 @@ export async function getCategories(client: SupabaseClient) {
     .from('categories')
     .select('*')
     .order('sort_order', { ascending: true })
-    .order('name_th', { ascending: true })
+    .order('name', { ascending: true })
 
   return (data ?? []) as Category[]
 }
@@ -76,11 +76,9 @@ export async function getCategory(client: SupabaseClient, id: number) {
 export async function createCategory(
   client: SupabaseClient,
   input: {
-    name_th: string
-    name_en: string
+    name: string
     slug: string
-    description_th?: string
-    description_en?: string
+    description?: string
     parent_id?: number | null
     sort_order?: number
   }
@@ -88,11 +86,9 @@ export async function createCategory(
   const { data, error } = await client
     .from('categories')
     .insert({
-      name_th: input.name_th,
-      name_en: input.name_en,
+      name: input.name,
       slug: input.slug,
-      description_th: input.description_th ?? null,
-      description_en: input.description_en ?? null,
+      description: input.description ?? null,
       parent_id: input.parent_id ?? null,
       sort_order: input.sort_order ?? 0,
     })
@@ -107,11 +103,9 @@ export async function updateCategory(
   client: SupabaseClient,
   id: number,
   input: {
-    name_th?: string
-    name_en?: string
+    name?: string
     slug?: string
-    description_th?: string
-    description_en?: string
+    description?: string
     parent_id?: number | null
     sort_order?: number
   }
@@ -164,11 +158,9 @@ export async function createProduct(
   client: SupabaseClient,
   input: {
     category_id?: number | null
-    name_th: string
-    name_en: string
+    name: string
     slug: string
-    description_th?: string
-    description_en?: string
+    description?: string
     price?: number
     stock_qty?: number
     is_active?: boolean
@@ -179,11 +171,9 @@ export async function createProduct(
     .from('products')
     .insert({
       category_id: input.category_id ?? null,
-      name_th: input.name_th,
-      name_en: input.name_en,
+      name: input.name,
       slug: input.slug,
-      description_th: input.description_th ?? null,
-      description_en: input.description_en ?? null,
+      description: input.description ?? null,
       price: input.price ?? 0,
       stock_qty: input.stock_qty ?? 0,
       is_active: input.is_active ?? true,
@@ -201,11 +191,9 @@ export async function updateProduct(
   id: number,
   input: {
     category_id?: number | null
-    name_th?: string
-    name_en?: string
+    name?: string
     slug?: string
-    description_th?: string
-    description_en?: string
+    description?: string
     price?: number
     stock_qty?: number
     is_active?: boolean
@@ -454,7 +442,7 @@ export async function getActiveProducts(
 
   if (options?.search) {
     query = query.or(
-      `name_th.ilike.%${options.search}%,name_en.ilike.%${options.search}%`
+      `name.ilike.%${options.search}%`
     )
   }
 
@@ -517,8 +505,7 @@ export async function getCategoriesWithProductCount(client: SupabaseClient) {
 export async function updateStoreSettings(
   client: SupabaseClient,
   input: {
-    store_name_th?: string
-    store_name_en?: string
+    store_name?: string
     logo_url?: string | null
     promptpay_number?: string | null
     promptpay_qr_url?: string | null
@@ -527,8 +514,7 @@ export async function updateStoreSettings(
     bank_account_name?: string | null
     business_hours_start?: string
     business_hours_end?: string
-    address_th?: string | null
-    address_en?: string | null
+    address?: string | null
     email?: string | null
     phone?: string | null
     facebook_url?: string | null
@@ -613,9 +599,13 @@ export async function createOrder(
 }
 
 export async function getUserOrders(client: SupabaseClient) {
+  const { data: { user } } = await client.auth.getUser()
+  if (!user) return []
+
   const { data } = await client
     .from('orders')
     .select('*, items:order_items(*)')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
   return (data ?? []) as (Order & { items: OrderItem[] })[]
@@ -720,17 +710,16 @@ export async function getDashboardStats(client: SupabaseClient) {
 
   const { data: orderItems } = await client
     .from('order_items')
-    .select('product_name, quantity, total_price, product:products(name_th, name_en)')
+    .select('product_name, quantity, total_price, product:products(name)')
 
-  const productSales: Record<string, { qty: number; revenue: number; name_th: string; name_en: string }> = {}
+  const productSales: Record<string, { qty: number; revenue: number; name: string }> = {}
   orderItems?.forEach((item) => {
     if (!productSales[item.product_name]) {
-      const p = item.product as { name_th?: string; name_en?: string } | null
+      const p = item.product as { name?: string } | null
       productSales[item.product_name] = {
         qty: 0,
         revenue: 0,
-        name_th: p?.name_th || item.product_name,
-        name_en: p?.name_en || item.product_name,
+        name: p?.name || item.product_name,
       }
     }
     productSales[item.product_name].qty += item.quantity
@@ -738,7 +727,7 @@ export async function getDashboardStats(client: SupabaseClient) {
   })
 
   const topProducts = Object.entries(productSales)
-    .map(([name, data]) => ({ name, name_th: data.name_th, name_en: data.name_en, qty: data.qty, revenue: data.revenue }))
+    .map(([name, data]) => ({ name, ...data }))
     .sort((a, b) => b.qty - a.qty)
     .slice(0, 10)
 

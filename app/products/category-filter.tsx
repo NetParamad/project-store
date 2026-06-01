@@ -48,7 +48,7 @@ export function CategoryFilter({ categories, selected, mobile }: Props) {
                 : 'bg-background hover:bg-accent'
             )}
           >
-            {cat.name_en}
+            {cat.name}
           </Link>
         ))}
       </>
@@ -80,7 +80,7 @@ export function CategoryFilter({ categories, selected, mobile }: Props) {
               : 'hover:bg-accent text-muted-foreground'
           )}
         >
-          {cat.name_en}
+          {cat.name}
         </Link>
       ))}
     </div>

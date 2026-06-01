@@ -37,26 +37,26 @@ export async function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Store Info */}
           <div className="space-y-3">
-            <h3 className="font-semibold">{settings?.store_name_th || 'ร้านของฉัน'}</h3>
-            {settings?.address_th && (
+            <h3 className="font-semibold">{settings?.store_name || 'ร้านของฉัน'}</h3>
+            {settings?.address && (
               <a
                 href={settings?.map_url || "https://maps.google.com"}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-start gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-start gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 <MapPin size={14} className="mt-0.5 shrink-0" />
-                <span>{settings.address_th}</span>
+                <span>{settings.address}</span>
               </a>
             )}
             {settings?.email && (
-              <a href={`mailto:${settings.email}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <a href={`mailto:${settings.email}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
                 <Mail size={14} />
                 {settings.email}
               </a>
             )}
             {settings?.phone && (
-              <a href={`tel:${settings.phone}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <a href={`tel:${settings.phone}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
                 <Phone size={14} />
                 {settings.phone}
               </a>
@@ -74,7 +74,7 @@ export async function Footer() {
                     href={s.url!}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center h-9 w-9 rounded-full border bg-card hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+                    className="inline-flex items-center justify-center h-9 w-9 rounded-full border bg-card hover:bg-accent transition-colors text-muted-foreground hover:text-primary"
                   >
                     {s.icon}
                   </a>
@@ -85,12 +85,12 @@ export async function Footer() {
 
           {/* Navigation */}
           <div className="space-y-3">
-            <h3 className="font-semibold">หน้าแรก</h3>
+            <h3 className="font-semibold">ข้อมูลทั่วไป</h3>
             <nav className="grid grid-cols-2 gap-2">
-              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">หน้าแรก</Link>
-              <Link href="/products" className="text-sm text-muted-foreground hover:text-foreground transition-colors">สินค้า</Link>
-              <Link href="/about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">เกี่ยวกับ</Link>
-              <Link href="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">ติดต่อ</Link>
+              <Link href="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">หน้าแรก</Link>
+              <Link href="/products" className="text-sm text-muted-foreground hover:text-primary transition-colors">สินค้า</Link>
+              <Link href="/about" className="text-sm text-muted-foreground hover:text-primary transition-colors">เกี่ยวกับ</Link>
+              <Link href="/contact" className="text-sm text-muted-foreground hover:text-primary transition-colors">ติดต่อ</Link>
               <AuthFooterLinks />
             </nav>
           </div>

@@ -39,7 +39,7 @@ export function MobileBottomNav() {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background md:hidden"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      style={{ paddingBottom: 'constant(safe-area-inset-bottom, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="flex items-center justify-around h-14">
         {tabs.map((tab) => {

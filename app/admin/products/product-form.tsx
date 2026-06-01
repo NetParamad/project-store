@@ -41,11 +41,9 @@ export function ProductForm({ categories, initialData }: Props) {
   const [form, setForm] = useState(() => initialData
     ? {
         category_id: initialData.category_id?.toString() ?? 'none',
-        name_th: initialData.name_th,
-        name_en: initialData.name_en,
+        name: initialData.name,
         slug: initialData.slug,
-        description_th: initialData.description_th ?? '',
-        description_en: initialData.description_en ?? '',
+        description: initialData.description ?? '',
         price: initialData.price.toString(),
         stock_qty: initialData.stock_qty.toString(),
         is_active: initialData.is_active,
@@ -53,11 +51,9 @@ export function ProductForm({ categories, initialData }: Props) {
       }
     : {
         category_id: 'none',
-        name_th: '',
-        name_en: '',
+        name: '',
         slug: '',
-        description_th: '',
-        description_en: '',
+        description: '',
         price: '',
         stock_qty: '0',
         is_active: true,
@@ -71,10 +67,10 @@ export function ProductForm({ categories, initialData }: Props) {
       .replace(/(^-|-$)/g, '')
   }
 
-  function handleNameEnChange(value: string) {
+  function handleNameChange(value: string) {
     setForm((prev) => ({
       ...prev,
-      name_en: value,
+      name: value,
       slug: slugEdited.current ? prev.slug : generateSlug(value),
     }))
   }
@@ -193,11 +189,9 @@ export function ProductForm({ categories, initialData }: Props) {
       const supabase = createClient()
       const payload = {
         category_id: form.category_id && form.category_id !== 'none' ? parseInt(form.category_id) : null,
-        name_th: form.name_th,
-        name_en: form.name_en,
+        name: form.name,
         slug: form.slug,
-        description_th: form.description_th || null,
-        description_en: form.description_en || null,
+        description: form.description || null,
         price: parseFloat(form.price) || 0,
         stock_qty: parseInt(form.stock_qty) || 0,
         is_active: form.is_active,
@@ -283,38 +277,26 @@ export function ProductForm({ categories, initialData }: Props) {
                 <SelectItem value="none">ไม่มีหมวดหมู่</SelectItem>
                 {categories.map((c) => (
                   <SelectItem key={c.id} value={c.id.toString()}>
-                    {c.name_th}
+                    {c.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name_th">ชื่อ (ภาษาไทย) * <span className="text-destructive"></span></Label>
-              <Input
-                id="name_th"
-                value={form.name_th}
-                onChange={(e) => setForm({ ...form, name_th: e.target.value })}
-                placeholder="ชื่อสินค้า"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="name_en">ชื่อ (ภาษาอังกฤษ) * <span className="text-destructive"></span></Label>
-              <Input
-                id="name_en"
-                value={form.name_en}
-                onChange={(e) => handleNameEnChange(e.target.value)}
-                placeholder="Product name"
-                required
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="name">ชื่อ <span className="text-destructive">*</span></Label>
+            <Input
+              id="name"
+              value={form.name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              placeholder="ชื่อสินค้า"
+              required
+            />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="slug">Slug * <span className="text-destructive"></span></Label>
+            <Label htmlFor="slug">Slug <span className="text-destructive">*</span></Label>
             <Input
               id="slug"
               value={form.slug}
@@ -328,31 +310,17 @@ export function ProductForm({ categories, initialData }: Props) {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="description_th">คำอธิบาย (ภาษาไทย)</Label>
-              <Textarea
-                id="description_th"
-                value={form.description_th}
-                onChange={(e) =>
-                  setForm({ ...form, description_th: e.target.value })
-                }
-                placeholder="รายละเอียดสินค้า"
-                rows={4}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description_en">คำอธิบาย (ภาษาอังกฤษ)</Label>
-              <Textarea
-                id="description_en"
-                value={form.description_en}
-                onChange={(e) =>
-                  setForm({ ...form, description_en: e.target.value })
-                }
-                placeholder="Product description"
-                rows={4}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="description">คำอธิบาย</Label>
+            <Textarea
+              id="description"
+              value={form.description}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
+              placeholder="รายละเอียดสินค้า"
+              rows={4}
+            />
           </div>
         </CardContent>
       </Card>
@@ -363,7 +331,7 @@ export function ProductForm({ categories, initialData }: Props) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-             <Label htmlFor="price">ราคาซื้อ (฿) * <span className="text-destructive"></span></Label>
+             <Label htmlFor="price">ราคา (฿) <span className="text-destructive">*</span></Label>
              <Input
                 id="price"
                 type="number"
@@ -384,7 +352,7 @@ export function ProductForm({ categories, initialData }: Props) {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <Label htmlFor="stock_qty">สต็อก (ขาย) * <span className="text-destructive"></span></Label>
+            <Label htmlFor="stock_qty">สต็อก <span className="text-destructive">*</span></Label>
             <Input
               id="stock_qty"
               type="number"

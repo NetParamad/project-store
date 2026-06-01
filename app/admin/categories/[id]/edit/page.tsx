@@ -13,9 +13,9 @@ export default async function EditCategoryPage({
   if (isNaN(categoryId)) notFound()
 
   const supabase = await createClient()
-  const [category, categories] = await Promise.all([
-    getCategory(supabase, categoryId),
+  const [categories, category] = await Promise.all([
     getCategories(supabase),
+    getCategory(supabase, categoryId),
   ])
 
   if (!category) notFound()
@@ -23,9 +23,9 @@ export default async function EditCategoryPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Edit Category</h1>
+        <h1 className="text-3xl font-bold">แก้ไขหมวดหมู่</h1>
         <p className="text-muted-foreground mt-1">
-          Update category &ldquo;{category.name_en}&rdquo;
+          แก้ไขหมวดหมู่ &ldquo;{category.name}&rdquo;
         </p>
       </div>
       <CategoryForm categories={categories} initialData={category} />

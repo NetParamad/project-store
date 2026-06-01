@@ -69,8 +69,8 @@ function AppointmentDetailContent() {
 
   const isCancelled = appointment.status === 'cancelled'
   const currentStep = statusSteps.indexOf(appointment.status)
-  const serviceName = appointment.service?.name_th || appointment.service?.name_en || ''
-  const productName = appointment.product ? (appointment.product.name_th || appointment.product.name_en) : null
+  const serviceName = appointment.service?.name || ''
+  const productName = appointment.product ? appointment.product.name : null
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-8">

@@ -101,7 +101,7 @@ export default async function HomePage() {
                       />
                     </div>
                     <div className="p-3 text-center space-y-0.5">
-                      <p className="font-medium text-sm">{cat.name_th}</p>
+                      <p className="font-medium text-sm">{cat.name}</p>
                     </div>
                   </Link>
                 </Card>

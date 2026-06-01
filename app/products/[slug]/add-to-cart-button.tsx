@@ -30,7 +30,7 @@ export function AddToCartButton({ product, outOfStock }: Props) {
     })
 
     setAdded(true)
-    toast.success(`${product.name_th} เพิ่มแล้ว!`)
+    toast.success(`${product.name} เพิ่มแล้ว!`)
     setTimeout(() => setAdded(false), 2000)
   }
 
@@ -52,7 +52,7 @@ export function AddToCartButton({ product, outOfStock }: Props) {
       <CardContent className="p-4 space-y-4">
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <div className="space-y-1">
-          <Label htmlFor="qty" className="text-xs">
+          <Label htmlFor="qty" className="text-xs mr-2">
             จำนวน
           </Label>
           <Input

@@ -1,11 +1,10 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Category, CategoryFormData } from '@/lib/db.types'
+import type { Category } from '@/lib/db.types'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -16,6 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { toast } from 'sonner'
 
 interface Props {
@@ -26,30 +31,24 @@ interface Props {
 export function CategoryForm({ categories, initialData }: Props) {
   const router = useRouter()
   const isEditing = !!initialData
+  const slugEdited = useRef(false)
   const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState<CategoryFormData>({
-    name_th: '',
-    name_en: '',
-    slug: '',
-    description_th: '',
-    description_en: '',
-    parent_id: 'none',
-    sort_order: '0',
-  })
 
-  useEffect(() => {
-    if (initialData) {
-      setForm({
-        name_th: initialData.name_th,
-        name_en: initialData.name_en,
+  const [form, setForm] = useState(() => initialData
+    ? {
+        name: initialData.name,
         slug: initialData.slug,
-        description_th: initialData.description_th ?? '',
-        description_en: initialData.description_en ?? '',
+        description: initialData.description ?? '',
         parent_id: initialData.parent_id?.toString() ?? 'none',
         sort_order: initialData.sort_order.toString(),
+      }
+    : {
+        name: '',
+        slug: '',
+        description: '',
+        parent_id: 'none',
+        sort_order: '0',
       })
-    }
-  }, [initialData])
 
   function generateSlug(text: string) {
     return text
@@ -58,12 +57,12 @@ export function CategoryForm({ categories, initialData }: Props) {
       .replace(/(^-|-$)/g, '')
   }
 
-  function handleNameEnChange(value: string) {
-    if (!isEditing && !form.slug) {
-      setForm({ ...form, name_en: value, slug: generateSlug(value) })
-    } else {
-      setForm({ ...form, name_en: value })
-    }
+  function handleNameChange(value: string) {
+    setForm((prev) => ({
+      ...prev,
+      name: value,
+      slug: slugEdited.current ? prev.slug : generateSlug(value),
+    }))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -73,16 +72,14 @@ export function CategoryForm({ categories, initialData }: Props) {
     try {
       const supabase = createClient()
       const payload = {
-        name_th: form.name_th,
-        name_en: form.name_en,
+        name: form.name,
         slug: form.slug,
-        description_th: form.description_th || null,
-        description_en: form.description_en || null,
+        description: form.description || null,
         parent_id: form.parent_id && form.parent_id !== 'none' ? parseInt(form.parent_id) : null,
         sort_order: parseInt(form.sort_order) || 0,
       }
 
-      if (isEditing) {
+      if (isEditing && initialData) {
         const { error } = await supabase
           .from('categories')
           .update({ ...payload, updated_at: new Date().toISOString() })
@@ -110,66 +107,49 @@ export function CategoryForm({ categories, initialData }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
-      <Card><CardContent className="p-6 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit} className="max-w-lg space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>{isEditing ? 'แก้ไขหมวดหมู่' : 'สร้างหมวดหมู่'}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name_th">ชื่อ (ภาษาไทย) * <span className="text-destructive">*</span></Label>
+            <Label htmlFor="name">ชื่อ <span className="text-destructive">*</span></Label>
             <Input
-              id="name_th"
-              value={form.name_th}
-              onChange={(e) => setForm({ ...form, name_th: e.target.value })}
+              id="name"
+              value={form.name}
+              onChange={(e) => handleNameChange(e.target.value)}
               placeholder="ชื่อหมวดหมู่"
               required
             />
           </div>
+
           <div className="space-y-2">
-            <Label htmlFor="name_en">ชื่อ (ภาษาอังกฤษ) * <span className="text-destructive">*</span></Label>
+            <Label htmlFor="slug">Slug <span className="text-destructive">*</span></Label>
             <Input
-              id="name_en"
-              value={form.name_en}
-              onChange={(e) => handleNameEnChange(e.target.value)}
-              placeholder="Category name"
+              id="slug"
+              value={form.slug}
+              onChange={(e) => {
+                const val = e.target.value
+                slugEdited.current = val !== ''
+                setForm((prev) => ({ ...prev, slug: val }))
+              }}
+              placeholder="category-slug"
               required
             />
           </div>
-        </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="slug">Slug * <span className="text-destructive">*</span></Label>
-          <Input
-            id="slug"
-            value={form.slug}
-            onChange={(e) => setForm({ ...form, slug: e.target.value })}
-            placeholder="category-slug"
-            required
-          />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="description_th">คำอธิบาย (ภาษาไทย)</Label>
+            <Label htmlFor="description">คำอธิบาย</Label>
             <Textarea
-              id="description_th"
-              value={form.description_th}
-              onChange={(e) => setForm({ ...form, description_th: e.target.value })}
-              placeholder="คำอธิบายหมวดหมู่"
+              id="description"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="รายละเอียดหมวดหมู่"
               rows={3}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="description_en">คำอธิบาย (ภาษาอังกฤษ)</Label>
-            <Textarea
-              id="description_en"
-              value={form.description_en}
-              onChange={(e) => setForm({ ...form, description_en: e.target.value })}
-              placeholder="Category description"
-              rows={3}
-            />
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="parent_id">หมวดหมู่หลัก</Label>
             <Select
@@ -185,33 +165,38 @@ export function CategoryForm({ categories, initialData }: Props) {
                   .filter((c) => c.id !== initialData?.id)
                   .map((c) => (
                     <SelectItem key={c.id} value={c.id.toString()}>
-                      {c.name_th}
+                      {c.name}
                     </SelectItem>
                   ))}
               </SelectContent>
             </Select>
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="sort_order">ลำดับการจัดเรียง</Label>
             <Input
               id="sort_order"
               type="number"
+              min={0}
               value={form.sort_order}
               onChange={(e) => setForm({ ...form, sort_order: e.target.value })}
             />
           </div>
-        </div>
-      </CardContent></Card>
+        </CardContent>
+      </Card>
 
-      <div className="flex flex-col sm:flex-row items-center gap-3">
-        <Button type="submit" disabled={loading} className="w-full sm:w-auto">
-          {loading ? 'กำลังบันทึก...' : isEditing ? 'อัปเดตหมวดหมู่' : 'สร้างหมวดหมู่'}
+      <div className="flex items-center gap-3 pb-8">
+        <Button type="submit" disabled={loading}>
+          {loading
+            ? 'กำลังบันทึก...'
+            : isEditing
+              ? 'อัปเดตหมวดหมู่'
+              : 'สร้างหมวดหมู่'}
         </Button>
         <Button
           type="button"
           variant="outline"
           onClick={() => router.push('/admin/categories')}
-          className="w-full sm:w-auto"
         >
           ยกเลิก
         </Button>

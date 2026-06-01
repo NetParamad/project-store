@@ -10,11 +10,9 @@ export interface Profile {
 
 export interface Category {
   id: number
-  name_th: string
-  name_en: string
+  name: string
   slug: string
-  description_th: string | null
-  description_en: string | null
+  description: string | null
   parent_id: number | null
   sort_order: number
   created_at: string
@@ -24,11 +22,9 @@ export interface Category {
 export interface Product {
   id: number
   category_id: number | null
-  name_th: string
-  name_en: string
+  name: string
   slug: string
-  description_th: string | null
-  description_en: string | null
+  description: string | null
   price: number
   stock_qty: number
   is_active: boolean
@@ -49,11 +45,9 @@ export interface ProductImage {
 
 export type ProductFormData = {
   category_id: string
-  name_th: string
-  name_en: string
+  name: string
   slug: string
-  description_th: string
-  description_en: string
+  description: string
   price: string
   stock_qty: string
   is_active: boolean
@@ -61,11 +55,9 @@ export type ProductFormData = {
 }
 
 export type CategoryFormData = {
-  name_th: string
-  name_en: string
+  name: string
   slug: string
-  description_th: string
-  description_en: string
+  description: string
   parent_id: string
   sort_order: string
 }
@@ -73,10 +65,8 @@ export type CategoryFormData = {
 export interface AppointmentService {
   id: number
   type: 'try_on' | 'consultation'
-  name_th: string
-  name_en: string
-  description_th: string | null
-  description_en: string | null
+  name: string
+  description: string | null
   duration_minutes: number
   price: number
   is_active: boolean
@@ -110,8 +100,7 @@ export type AppointmentFormData = {
 
 export interface StoreSettings {
   id: number
-  store_name_th: string
-  store_name_en: string
+  store_name: string
   logo_url: string | null
   promptpay_number: string | null
   promptpay_qr_url: string | null
@@ -122,8 +111,7 @@ export interface StoreSettings {
   theme_custom_color: string | null
   business_hours_start: string
   business_hours_end: string
-  address_th: string | null
-  address_en: string | null
+  address: string | null
   email: string | null
   phone: string | null
   facebook_url: string | null
@@ -136,8 +124,7 @@ export interface StoreSettings {
 }
 
 export type StoreSettingsFormData = {
-  store_name_th: string
-  store_name_en: string
+  store_name: string
   promptpay_number: string
   bank_name: string
   bank_account: string
@@ -146,8 +133,7 @@ export type StoreSettingsFormData = {
   theme_custom_color: string
   business_hours_start: string
   business_hours_end: string
-  address_th: string
-  address_en: string
+  address: string
   email: string
   phone: string
   facebook_url: string

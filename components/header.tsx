@@ -30,7 +30,7 @@ function AuthSectionSkeleton() {
 export async function Header() {
   const supabase = await createClient();
   const settings = await getStoreSettings(supabase);
-  const storeName = settings?.store_name_th || 'ร้านของฉัน';
+  const storeName = settings?.store_name || 'ร้านของฉัน';
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

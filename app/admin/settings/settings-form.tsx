@@ -44,8 +44,7 @@ export function SettingsForm({ initialData }: Props) {
   const [qrUrl, setQrUrl] = useState<string | null>(initialData?.promptpay_qr_url ?? null)
 
   const [form, setForm] = useState<StoreSettingsFormData>({
-    store_name_th: '',
-    store_name_en: '',
+    store_name: '',
     promptpay_number: '',
     bank_name: '',
     bank_account: '',
@@ -54,8 +53,7 @@ export function SettingsForm({ initialData }: Props) {
     theme_custom_color: '',
     business_hours_start: '09:00',
     business_hours_end: '17:00',
-    address_th: '',
-    address_en: '',
+    address: '',
     email: '',
     phone: '',
     facebook_url: '',
@@ -69,8 +67,7 @@ export function SettingsForm({ initialData }: Props) {
   useEffect(() => {
     if (initialData) {
       setForm({
-        store_name_th: initialData.store_name_th,
-        store_name_en: initialData.store_name_en,
+        store_name: initialData.store_name,
         promptpay_number: initialData.promptpay_number ?? '',
         bank_name: initialData.bank_name ?? '',
         bank_account: initialData.bank_account ?? '',
@@ -79,8 +76,7 @@ export function SettingsForm({ initialData }: Props) {
         theme_custom_color: initialData.theme_custom_color ?? '',
         business_hours_start: initialData.business_hours_start ?? '09:00',
         business_hours_end: initialData.business_hours_end ?? '17:00',
-        address_th: initialData.address_th ?? '',
-        address_en: initialData.address_en ?? '',
+        address: initialData.address ?? '',
         email: initialData.email ?? '',
         phone: initialData.phone ?? '',
         facebook_url: initialData.facebook_url ?? '',
@@ -152,8 +148,7 @@ export function SettingsForm({ initialData }: Props) {
       const { error } = await supabase
         .from('store_settings')
         .update({
-          store_name_th: form.store_name_th,
-          store_name_en: form.store_name_en,
+          store_name: form.store_name,
           logo_url: logoUrl,
           promptpay_number: form.promptpay_number || null,
           promptpay_qr_url: qrUrl,
@@ -164,8 +159,7 @@ export function SettingsForm({ initialData }: Props) {
           theme_custom_color: form.theme_custom_color || null,
           business_hours_start: form.business_hours_start || '09:00',
           business_hours_end: form.business_hours_end || '17:00',
-          address_th: form.address_th || null,
-          address_en: form.address_en || null,
+          address: form.address || null,
           email: form.email || null,
           phone: form.phone || null,
           facebook_url: form.facebook_url || null,
@@ -202,27 +196,15 @@ export function SettingsForm({ initialData }: Props) {
           <CardTitle>ข้อมูลร้านค้า</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="store_name_th">ชื่อร้าน (ภาษาไทย) <span className="text-destructive">*</span></Label>
-              <Input
-                id="store_name_th"
-                value={form.store_name_th}
-                onChange={(e) => setForm({ ...form, store_name_th: e.target.value })}
-                placeholder="ชื่อร้าน"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="store_name_en">ชื่อร้าน (ภาษาอังกฤษ) <span className="text-destructive">*</span></Label>
-              <Input
-                id="store_name_en"
-                value={form.store_name_en}
-                onChange={(e) => setForm({ ...form, store_name_en: e.target.value })}
-                placeholder="Store name"
-                required
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="store_name">ชื่อร้าน <span className="text-destructive">*</span></Label>
+            <Input
+              id="store_name"
+              value={form.store_name}
+              onChange={(e) => setForm({ ...form, store_name: e.target.value })}
+              placeholder="ชื่อร้าน"
+              required
+            />
           </div>
 
           <Separator />
@@ -304,25 +286,14 @@ export function SettingsForm({ initialData }: Props) {
           <CardTitle>ข้อมูลติดต่อ</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="address_th">ที่อยู่ (ภาษาไทย)</Label>
-              <Input
-                id="address_th"
-                value={form.address_th}
-                onChange={(e) => setForm({ ...form, address_th: e.target.value })}
-                placeholder="123 ถนนร้านค้า กรุงเทพฯ 10110"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="address_en">ที่อยู่ (ภาษาอังกฤษ)</Label>
-              <Input
-                id="address_en"
-                value={form.address_en}
-                onChange={(e) => setForm({ ...form, address_en: e.target.value })}
-                placeholder="123 Store Street, Bangkok 10110"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="address">ที่อยู่</Label>
+            <Input
+              id="address"
+              value={form.address}
+              onChange={(e) => setForm({ ...form, address: e.target.value })}
+              placeholder="123 ถนนร้านค้า กรุงเทพฯ 10110"
+            />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
