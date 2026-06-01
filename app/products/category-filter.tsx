@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { useTranslations } from 'next-intl'
 import type { Category } from '@/lib/db.types'
 import { cn } from '@/lib/utils'
 
@@ -15,7 +14,6 @@ interface Props {
 export function CategoryFilter({ categories, selected, mobile }: Props) {
   const searchParams = useSearchParams()
   const params = new URLSearchParams(searchParams.toString())
-  const t = useTranslations('products')
 
   function buildUrl(categoryId?: number) {
     const p = new URLSearchParams()
@@ -37,7 +35,7 @@ export function CategoryFilter({ categories, selected, mobile }: Props) {
               : 'bg-background hover:bg-accent'
           )}
         >
-          {t('allCategories')}
+          ทุกหมวดหมู่
         </Link>
         {categories.map((cat) => (
           <Link
@@ -59,7 +57,7 @@ export function CategoryFilter({ categories, selected, mobile }: Props) {
 
   return (
     <div className="space-y-1">
-      <h3 className="text-sm font-medium text-muted-foreground mb-2">{t('allCategories')}</h3>
+      <h3 className="text-sm font-medium text-muted-foreground mb-2">ทุกหมวดหมู่</h3>
       <Link
         href={buildUrl()}
         className={cn(
@@ -69,7 +67,7 @@ export function CategoryFilter({ categories, selected, mobile }: Props) {
             : 'hover:bg-accent text-muted-foreground'
         )}
       >
-        {t('allCategories')}
+        ทุกหมวดหมู่
       </Link>
       {categories.map((cat) => (
         <Link

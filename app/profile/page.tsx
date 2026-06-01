@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { getProfile, updateProfile } from '@/lib/supabase/queries'
 import Link from 'next/link'
@@ -16,7 +15,6 @@ import type { Profile } from '@/lib/db.types'
 
 export default function ProfilePage() {
   const router = useRouter()
-  const t = useTranslations()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -54,9 +52,9 @@ export default function ProfilePage() {
         phone: phone || null,
       })
       setProfile(updated)
-      setMessage(t('profile.saved'))
+      setMessage('อัปเดตโปรไฟล์สำเร็จ')
     } catch {
-      setMessage(t('profile.error'))
+      setMessage('ไม่สามารถอัปเดตโปรไฟล์ได้')
     } finally {
       setSaving(false)
     }
@@ -77,7 +75,6 @@ export default function ProfilePage() {
       <div className="flex items-center gap-4">
         <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
           {profile.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={profile.avatar_url}
               alt=""
@@ -88,11 +85,11 @@ export default function ProfilePage() {
           )}
         </div>
         <div>
-          <h1 className="text-2xl font-bold">{t('profile.title')}</h1>
+          <h1 className="text-2xl font-bold">โปรไฟล์ของฉัน</h1>
           <p className="text-sm text-muted-foreground">
-            {t('profile.memberSince')}: {new Date(profile.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
+            สมาชิกตั้งแต่: {new Date(profile.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
           </p>
-          <p className="text-xs text-muted-foreground capitalize">{t('profile.role')}: {profile.role}</p>
+          <p className="text-xs text-muted-foreground capitalize">บทบาท: {profile.role}</p>
         </div>
       </div>
 
@@ -100,7 +97,7 @@ export default function ProfilePage() {
 
       {message && (
         <div className={`rounded-lg p-3 text-sm font-medium ${
-          message === t('profile.saved')
+          message === 'อัปเดตโปรไฟล์สำเร็จ'
             ? 'bg-green-50 text-green-700 border border-green-200'
             : 'bg-red-50 text-red-700 border border-red-200'
         }`}>
@@ -110,17 +107,17 @@ export default function ProfilePage() {
 
       <div className="space-y-4 max-w-md">
         <div className="space-y-2">
-          <Label htmlFor="displayName">{t('profile.displayName')}</Label>
+          <Label htmlFor="displayName">ชื่อที่แสดง</Label>
           <Input
             id="displayName"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            placeholder={t('profile.displayName')}
+            placeholder="ชื่อที่แสดง"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="phone">{t('profile.phone')}</Label>
+          <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
           <Input
             id="phone"
             value={phone}
@@ -131,7 +128,7 @@ export default function ProfilePage() {
 
         <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto">
           <Save size={16} className="mr-1" />
-          {saving ? t('common.loading') : t('profile.save')}
+          {saving ? 'กำลังโหลด...' : 'บันทึกการเปลี่ยนแปลง'}
         </Button>
       </div>
 
@@ -145,7 +142,7 @@ export default function ProfilePage() {
         >
           <div className="flex items-center gap-3">
             <ShoppingBag size={18} className="text-muted-foreground" />
-            <span className="text-sm font-medium">{t('nav.orders')}</span>
+            <span className="text-sm font-medium">คำสั่งซื้อ</span>
           </div>
           <ChevronRight size={16} className="text-muted-foreground" />
         </Link>
@@ -155,7 +152,7 @@ export default function ProfilePage() {
         >
           <div className="flex items-center gap-3">
             <CalendarDays size={18} className="text-muted-foreground" />
-            <span className="text-sm font-medium">{t('nav.appointments')}</span>
+            <span className="text-sm font-medium">การนัดหมาย</span>
           </div>
           <ChevronRight size={16} className="text-muted-foreground" />
         </Link>
@@ -166,7 +163,7 @@ export default function ProfilePage() {
           >
             <div className="flex items-center gap-3">
               <LayoutDashboard size={18} className="text-muted-foreground" />
-              <span className="text-sm font-medium">{t('nav.admin')}</span>
+              <span className="text-sm font-medium">จัดการระบบ</span>
             </div>
             <ChevronRight size={16} className="text-muted-foreground" />
           </Link>

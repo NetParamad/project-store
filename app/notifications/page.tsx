@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from '@/lib/supabase/queries'
 import { Loader2, Bell, CheckCheck, ArrowRight } from 'lucide-react'
@@ -13,7 +12,6 @@ import type { Notification } from '@/lib/db.types'
 
 export default function NotificationsPage() {
   const router = useRouter()
-  const t = useTranslations()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -62,14 +60,14 @@ export default function NotificationsPage() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">{t('notifications.title')}</h1>
+          <h1 className="text-3xl font-bold">การแจ้งเตือน</h1>
           <p className="text-muted-foreground mt-1">
-            {unreadCount > 0 ? t('notifications.unread', { count: unreadCount }) : t('notifications.allCaughtUp')}
+            {unreadCount > 0 ? `${unreadCount} รายการที่ยังไม่ได้อ่าน` : 'อ่านทั้งหมดแล้ว'}
           </p>
         </div>
         {unreadCount > 0 && (
           <Button variant="outline" size="sm" onClick={handleMarkAllRead}>
-            <CheckCheck size={14} className="mr-1" /> {t('notifications.markAllRead')}
+            <CheckCheck size={14} className="mr-1" /> อ่านทั้งหมด
           </Button>
         )}
       </div>
@@ -77,9 +75,9 @@ export default function NotificationsPage() {
       {notifications.length === 0 ? (
         <div className="text-center py-16 space-y-4">
           <Bell size={48} className="mx-auto text-muted-foreground" />
-          <p className="text-muted-foreground">{t('notifications.noNotifications')}</p>
+          <p className="text-muted-foreground">ยังไม่มีการแจ้งเตือน</p>
           <Button asChild>
-            <Link href="/products">{t('products.browseProducts')}</Link>
+            <Link href="/products">เลือกซื้อสินค้า</Link>
           </Button>
         </div>
       ) : (

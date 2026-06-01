@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getProducts } from '@/lib/supabase/queries'
-import { getTranslations } from 'next-intl/server'
 import { Plus, Pencil, EyeOff, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,21 +11,20 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 export default async function ProductsPage() {
   const supabase = await createClient()
   const products = await getProducts(supabase)
-  const t = await getTranslations()
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-3xl font-bold">{t('admin.products.title')}</h1>
+          <h1 className="text-3xl font-bold">สินค้า</h1>
           <p className="text-muted-foreground mt-1">
-            {t('admin.products.subtitle')}
+            จัดการแคตตาล็อกสินค้า
           </p>
         </div>
         <Link href="/admin/products/new">
           <Button>
             <Plus size={16} className="mr-2" />
-            {t('admin.products.addProduct')}
+            เพิ่มสินค้า
           </Button>
         </Link>
       </div>
@@ -36,20 +34,20 @@ export default async function ProductsPage() {
         <Table style={{ minWidth: 700 }}>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="px-4 py-3 font-medium">{t('admin.products.columns.id')}</TableHead>
-              <TableHead className="px-4 py-3 font-medium">{t('admin.products.columns.product')}</TableHead>
-              <TableHead className="px-4 py-3 font-medium">{t('admin.products.columns.price')}</TableHead>
-              <TableHead className="px-4 py-3 font-medium">{t('admin.products.columns.stock')}</TableHead>
-              <TableHead className="px-4 py-3 font-medium">{t('admin.products.columns.status')}</TableHead>
-              <TableHead className="px-4 py-3 font-medium">{t('admin.products.columns.is_bookable')}</TableHead>
-              <TableHead className="px-4 py-3 text-right font-medium">{t('admin.products.columns.actions')}</TableHead>
+              <TableHead className="px-4 py-3 font-medium">ID</TableHead>
+              <TableHead className="px-4 py-3 font-medium">สินค้า</TableHead>
+              <TableHead className="px-4 py-3 font-medium">ราคา</TableHead>
+              <TableHead className="px-4 py-3 font-medium">สต็อก</TableHead>
+              <TableHead className="px-4 py-3 font-medium">สถานะ</TableHead>
+              <TableHead className="px-4 py-3 font-medium">จองได้</TableHead>
+              <TableHead className="px-4 py-3 text-right font-medium">จัดการ</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {products.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                  {t('admin.products.empty')}
+                  ไม่พบสินค้า
                 </TableCell>
               </TableRow>
             ) : (
@@ -92,12 +90,12 @@ export default async function ProductsPage() {
                   <TableCell className="px-4 py-3">
                     {product.is_active ? (
                       <Badge variant="default" className="bg-green-600">
-                        {t('admin.products.badge.active')}
+                        เปิดใช้งาน
                       </Badge>
                     ) : (
                       <Badge variant="secondary">
                         <EyeOff size={12} className="mr-1" />
-                        {t('admin.products.badge.inactive')}
+                        ปิดใช้งาน
                       </Badge>
                     )}
                   </TableCell>

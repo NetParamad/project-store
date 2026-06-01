@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +15,6 @@ import type { Profile } from "@/lib/db.types";
 
 export function AuthButton() {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const t = useTranslations("auth");
 
   useEffect(() => {
     const fetch = async () => {
@@ -43,7 +41,7 @@ export function AuthButton() {
   if (!profile) {
     return (
       <Button asChild variant="default" size="sm">
-        <Link href="/auth/login">{t("login")}</Link>
+        <Link href="/auth/login">เข้าสู่ระบบ</Link>
       </Button>
     );
   }
@@ -62,12 +60,12 @@ export function AuthButton() {
         <DropdownMenuItem asChild>
           <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
             <User size={14} />
-            {t("profile")}
+            โปรไฟล์
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 cursor-pointer">
           <LogOut size={14} />
-          {t("logout")}
+          ออกจากระบบ
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

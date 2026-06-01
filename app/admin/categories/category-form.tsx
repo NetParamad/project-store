@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { useTranslations, useLocale } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import type { Category, CategoryFormData } from '@/lib/db.types'
 import { Button } from '@/components/ui/button'
@@ -26,8 +25,6 @@ interface Props {
 
 export function CategoryForm({ categories, initialData }: Props) {
   const router = useRouter()
-  const t = useTranslations('admin.categoryForm')
-  const locale = useLocale()
   const isEditing = !!initialData
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState<CategoryFormData>({
@@ -92,21 +89,21 @@ export function CategoryForm({ categories, initialData }: Props) {
           .eq('id', initialData.id)
 
         if (error) throw error
-        toast.success(t('categoryUpdated'))
+        toast.success('อัปเดตหมวดหมู่แล้ว!')
       } else {
         const { error } = await supabase
           .from('categories')
           .insert(payload)
 
         if (error) throw error
-        toast.success(t('categoryCreated'))
+        toast.success('สร้างหมวดหมู่แล้ว!')
       }
 
       router.push('/admin/categories')
       router.refresh()
     } catch (err) {
       console.error(err)
-      toast.error(t('error'))
+      toast.error('เกิดข้อผิดพลาด')
     } finally {
       setLoading(false)
     }
@@ -117,7 +114,7 @@ export function CategoryForm({ categories, initialData }: Props) {
       <Card><CardContent className="p-6 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="name_th">{t('nameThai')} <span className="text-destructive">*</span></Label>
+            <Label htmlFor="name_th">ชื่อ (ภาษาไทย) * <span className="text-destructive">*</span></Label>
             <Input
               id="name_th"
               value={form.name_th}
@@ -127,7 +124,7 @@ export function CategoryForm({ categories, initialData }: Props) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="name_en">{t('nameEn')} <span className="text-destructive">*</span></Label>
+            <Label htmlFor="name_en">ชื่อ (ภาษาอังกฤษ) * <span className="text-destructive">*</span></Label>
             <Input
               id="name_en"
               value={form.name_en}
@@ -139,7 +136,7 @@ export function CategoryForm({ categories, initialData }: Props) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="slug">{t('slug')} <span className="text-destructive">*</span></Label>
+          <Label htmlFor="slug">Slug * <span className="text-destructive">*</span></Label>
           <Input
             id="slug"
             value={form.slug}
@@ -151,7 +148,7 @@ export function CategoryForm({ categories, initialData }: Props) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="description_th">{t('descThai')}</Label>
+            <Label htmlFor="description_th">คำอธิบาย (ภาษาไทย)</Label>
             <Textarea
               id="description_th"
               value={form.description_th}
@@ -161,7 +158,7 @@ export function CategoryForm({ categories, initialData }: Props) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="description_en">{t('descEn')}</Label>
+            <Label htmlFor="description_en">คำอธิบาย (ภาษาอังกฤษ)</Label>
             <Textarea
               id="description_en"
               value={form.description_en}
@@ -174,28 +171,28 @@ export function CategoryForm({ categories, initialData }: Props) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="parent_id">{t('parentCategory')}</Label>
+            <Label htmlFor="parent_id">หมวดหมู่หลัก</Label>
             <Select
               value={form.parent_id}
               onValueChange={(v) => setForm({ ...form, parent_id: v })}
             >
               <SelectTrigger>
-                <SelectValue placeholder={t('noneTopLevel')} />
+                <SelectValue placeholder="ไม่มี (ระดับบนสุด)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">{t('noneTopLevel')}</SelectItem>
+                <SelectItem value="none">ไม่มี (ระดับบนสุด)</SelectItem>
                 {categories
                   .filter((c) => c.id !== initialData?.id)
                   .map((c) => (
                     <SelectItem key={c.id} value={c.id.toString()}>
-                      {locale === 'th' ? (c.name_th || c.name_en) : c.name_en}
+                      {c.name_th}
                     </SelectItem>
                   ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="sort_order">{t('sortOrder')}</Label>
+            <Label htmlFor="sort_order">ลำดับการจัดเรียง</Label>
             <Input
               id="sort_order"
               type="number"
@@ -208,7 +205,7 @@ export function CategoryForm({ categories, initialData }: Props) {
 
       <div className="flex flex-col sm:flex-row items-center gap-3">
         <Button type="submit" disabled={loading} className="w-full sm:w-auto">
-          {loading ? t('saving') : isEditing ? t('updateCategory') : t('createCategory')}
+          {loading ? 'กำลังบันทึก...' : isEditing ? 'อัปเดตหมวดหมู่' : 'สร้างหมวดหมู่'}
         </Button>
         <Button
           type="button"
@@ -216,7 +213,7 @@ export function CategoryForm({ categories, initialData }: Props) {
           onClick={() => router.push('/admin/categories')}
           className="w-full sm:w-auto"
         >
-          {t('cancel')}
+          ยกเลิก
         </Button>
       </div>
     </form>

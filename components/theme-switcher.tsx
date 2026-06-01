@@ -1,6 +1,5 @@
 "use client";
 
-import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,7 +15,6 @@ import { useEffect, useState } from "react";
 const ThemeSwitcher = () => {
   const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
-  const t = useTranslations("theme");
 
   // useEffect only runs on the client, so now we can safely show the UI
   useEffect(() => {
@@ -58,15 +56,15 @@ const ThemeSwitcher = () => {
         >
           <DropdownMenuRadioItem className="flex gap-2" value="light">
             <Sun size={ICON_SIZE}/>{" "}
-            <span>{t("light")}</span>
+            <span>สว่าง</span>
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem className="flex gap-2" value="dark">
             <Moon size={ICON_SIZE}/>{" "}
-            <span>{t("dark")}</span>
+            <span>มืด</span>
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem className="flex gap-2" value="system">
             <Laptop size={ICON_SIZE}/>{" "}
-            <span>{t("system")}</span>
+            <span>ตามระบบ</span>
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>

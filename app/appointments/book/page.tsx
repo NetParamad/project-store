@@ -1,9 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { useTranslations, useLocale } from 'next-intl'
-import { useField } from '@/lib/i18n'
+import { Suspense, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getActiveAppointmentServices, getAppointmentsByDate, getBookableProducts } from '@/lib/supabase/queries'
 import { Loader2, ArrowLeft } from 'lucide-react'
@@ -23,10 +21,20 @@ import Link from 'next/link'
 import type { AppointmentService, Product, ProductImage } from '@/lib/db.types'
 
 export default function BookAppointmentPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    }>
+      <BookAppointmentContent />
+    </Suspense>
+  )
+}
+
+function BookAppointmentContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const t = useTranslations()
-  const locale = useLocale()
   const preselectProductSlug = searchParams.get('product')
 
   const [services, setServices] = useState<AppointmentService[]>([])
@@ -131,7 +139,7 @@ export default function BookAppointmentPage() {
       if (!user) throw new Error('Not authenticated')
 
       const endTime = addMinutes(selectedTime, selectedService.duration_minutes)
-      const { createAppointment } = await import('@/lib/supabase/queries')
+      const { createAppointment, createNotification } = await import('@/lib/supabase/queries')
       await createAppointment(supabase, {
         user_id: user.id,
         service_id: selectedService.id,
@@ -142,6 +150,16 @@ export default function BookAppointmentPage() {
         phone: phone || undefined,
         notes: notes || undefined,
       })
+
+      try {
+        await createNotification(supabase, {
+          user_id: user.id,
+          type: 'appointment_update',
+          title: 'จองนัดหมายสำเร็จ!',
+          message: `คุณได้จอง ${selectedService.name_th} ในวันที่ ${selectedDate} เวลา ${selectedTime.substring(0, 5)}`,
+          link: '/appointments',
+        })
+      } catch {} // best-effort
 
       router.push('/appointments?booked=1')
     } catch (err) {
@@ -168,22 +186,22 @@ export default function BookAppointmentPage() {
         <Button asChild variant="ghost" size="icon">
           <Link href="/appointments"><ArrowLeft size={18} /></Link>
         </Button>
-        <h1 className="text-2xl font-bold">{t('appointments.book')}</h1>
+        <h1 className="text-2xl font-bold">จองนัดหมาย</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardContent className="p-4 space-y-4">
           <div className="space-y-2">
-            <Label>{t('appointments.pickService')} <span className="text-destructive">*</span></Label>
+            <Label>เลือกบริการ <span className="text-destructive">*</span></Label>
             <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
               <SelectTrigger>
-                <SelectValue placeholder={t('appointments.selectService')} />
+                <SelectValue placeholder="เลือกประเภทบริการ" />
               </SelectTrigger>
               <SelectContent>
                 {services.map(s => (
                   <SelectItem key={s.id} value={s.id.toString()}>
-                    {locale === 'th' ? s.name_th : s.name_en}
+                    {s.name_th}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -192,16 +210,16 @@ export default function BookAppointmentPage() {
 
           {isTryOn && (
             <div className="space-y-2">
-              <Label>{t('appointments.selectProduct')}</Label>
+              <Label>เลือกสินค้า (ไม่บังคับสำหรับลองชุด)</Label>
               <Select value={selectedProductId} onValueChange={setSelectedProductId}>
                 <SelectTrigger>
-                  <SelectValue placeholder={t('appointments.selectProduct')} />
+                  <SelectValue placeholder="เลือกสินค้า (ไม่บังคับสำหรับลองชุด)" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">—</SelectItem>
                   {products.map(p => (
                     <SelectItem key={p.id} value={p.id.toString()}>
-                      {locale === 'th' ? p.name_th : p.name_en}
+                      {p.name_th}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -210,7 +228,7 @@ export default function BookAppointmentPage() {
           )}
 
           <div className="space-y-2">
-            <Label>{t('appointments.selectDate')} <span className="text-destructive">*</span></Label>
+            <Label>เลือกวันที่ <span className="text-destructive">*</span></Label>
             <Input
               type="date"
               value={selectedDate}
@@ -222,9 +240,9 @@ export default function BookAppointmentPage() {
 
           {selectedDate && (
             <div className="space-y-2">
-              <Label>{t('appointments.selectTime')} <span className="text-destructive">*</span></Label>
+              <Label>เลือกเวลา <span className="text-destructive">*</span></Label>
               {timeSlots.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t('appointments.noSlots')}</p>
+                <p className="text-sm text-muted-foreground">ไม่มีช่วงเวลาว่างในวันที่เลือก</p>
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {timeSlots.map(slot => {
@@ -256,34 +274,34 @@ export default function BookAppointmentPage() {
 
         <Card>
           <CardContent className="p-4 space-y-4">
-          <h2 className="font-semibold">{t('appointments.info')}</h2>
+          <h2 className="font-semibold">ข้อมูลเพิ่มเติม</h2>
           <div className="space-y-2">
-            <Label htmlFor="phone">{t('appointments.phone')} <span className="text-destructive">*</span></Label>
+            <Label htmlFor="phone">เบอร์โทร <span className="text-destructive">*</span></Label>
             <Input
               id="phone"
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder={t('appointments.phoneHint')}
+              placeholder="เบอร์โทรศัพท์สำหรับติดต่อ"
               required
               pattern="[0-9]{10}"
               title="กรุณากรอกเบอร์โทร 10 หลัก"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="notes">{t('appointments.notes')}</Label>
+            <Label htmlFor="notes">หมายเหตุ</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder={t('appointments.notesHint')}
+              placeholder="รายละเอียดเพิ่มเติม..."
               rows={3}
             />
           </div>
         </CardContent></Card>
 
         <Button type="submit" disabled={submitting || !selectedServiceId || !selectedDate || !selectedTime} className="w-full">
-          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t('appointments.confirm')}
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'ยืนยันการจอง'}
         </Button>
       </form>
     </div>

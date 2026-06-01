@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { getAllOrders } from '@/lib/supabase/queries'
 import { Loader2, Eye } from 'lucide-react'
@@ -21,8 +20,16 @@ const statusColor: Record<string, string> = {
   cancelled: 'bg-red-100 text-red-800',
 }
 
+const statusLabels: Record<string, string> = {
+  pending: 'รอการชำระเงิน',
+  paid: 'ชำระแล้ว - รอยืนยัน',
+  confirmed: 'ยืนยันแล้ว',
+  shipped: 'จัดส่งแล้ว',
+  delivered: 'ได้รับแล้ว',
+  cancelled: 'ยกเลิก',
+}
+
 export default function AdminOrdersPage() {
-  const t = useTranslations()
   const [orders, setOrders] = useState<(Order & { items: OrderItem[] })[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -47,8 +54,8 @@ export default function AdminOrdersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">{t('admin.orders.title')}</h1>
-        <p className="text-muted-foreground">{t('admin.orders.subtitle')}</p>
+        <h1 className="text-3xl font-bold">คำสั่งซื้อ</h1>
+        <p className="text-muted-foreground">จัดการคำสั่งซื้อของลูกค้า</p>
       </div>
 
       <Card>
@@ -56,12 +63,12 @@ export default function AdminOrdersPage() {
         <Table style={{ minWidth: 750 }}>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="px-4 py-3 font-medium">{t('admin.orders.orderNum')}</TableHead>
-              <TableHead className="px-4 py-3 font-medium">{t('admin.orders.date')}</TableHead>
-              <TableHead className="px-4 py-3 font-medium">{t('admin.orders.items')}</TableHead>
-              <TableHead className="px-4 py-3 font-medium">{t('admin.orders.total')}</TableHead>
-              <TableHead className="px-4 py-3 font-medium">{t('admin.orders.status')}</TableHead>
-              <TableHead className="px-4 py-3 font-medium">{t('admin.orders.slip')}</TableHead>
+              <TableHead className="px-4 py-3 font-medium">คำสั่งซื้อ #</TableHead>
+              <TableHead className="px-4 py-3 font-medium">วันที่</TableHead>
+              <TableHead className="px-4 py-3 font-medium">รายการ</TableHead>
+              <TableHead className="px-4 py-3 font-medium">ยอดรวม</TableHead>
+              <TableHead className="px-4 py-3 font-medium">สถานะ</TableHead>
+              <TableHead className="px-4 py-3 font-medium">สลิป</TableHead>
               <TableHead className="px-4 py-3 text-right font-medium"></TableHead>
             </TableRow>
           </TableHeader>
@@ -76,13 +83,13 @@ export default function AdminOrdersPage() {
                 <TableCell className="px-4 py-3 font-medium">฿{order.total_amount.toLocaleString()}</TableCell>
                 <TableCell className="px-4 py-3">
                   <Badge className={`${statusColor[order.status]} border-transparent`}>
-                    {t('status.' + order.status)}
+                    {statusLabels[order.status] || order.status}
                   </Badge>
                 </TableCell>
                 <TableCell className="px-4 py-3">
                   {order.slip_url ? (
                     <a href={order.slip_url} target="_blank" rel="noreferrer" className="text-primary hover:underline text-xs">
-                      {t('admin.orders.viewSlip')}
+                      ดูสลิป
                     </a>
                   ) : (
                     <span className="text-muted-foreground text-xs">-</span>
@@ -90,14 +97,14 @@ export default function AdminOrdersPage() {
                 </TableCell>
                 <TableCell className="px-4 py-3 text-right">
                   <Button asChild variant="outline" size="sm">
-                    <Link href={`/admin/orders/${order.id}`}><Eye size={14} className="mr-1" /> {t('admin.orders.manage')}</Link>
+                    <Link href={`/admin/orders/${order.id}`}><Eye size={14} className="mr-1" /> จัดการ</Link>
                   </Button>
                 </TableCell>
               </TableRow>
             ))}
             {orders.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">{t('admin.orders.noOrders')}</TableCell>
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">ยังไม่มีคำสั่งซื้อ</TableCell>
               </TableRow>
             )}
           </TableBody>

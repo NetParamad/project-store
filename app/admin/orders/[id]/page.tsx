@@ -2,7 +2,6 @@
 
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { getOrder, updateOrderStatus, createNotification } from '@/lib/supabase/queries'
 import { Loader2, ArrowLeft } from 'lucide-react'
@@ -20,19 +19,27 @@ import {
 import Link from 'next/link'
 import type { Order, OrderItem } from '@/lib/db.types'
 
+const statusLabels: Record<string, string> = {
+  pending: 'รอการชำระเงิน',
+  paid: 'ชำระแล้ว - รอยืนยัน',
+  confirmed: 'ยืนยันแล้ว',
+  shipped: 'จัดส่งแล้ว',
+  delivered: 'ได้รับแล้ว',
+  cancelled: 'ยกเลิก',
+}
+
 const statusOptions = [
-  { value: 'pending', labelKey: 'status.pending' },
-  { value: 'paid', labelKey: 'status.paid' },
-  { value: 'confirmed', labelKey: 'status.confirmed' },
-  { value: 'shipped', labelKey: 'status.shipped' },
-  { value: 'delivered', labelKey: 'status.delivered' },
-  { value: 'cancelled', labelKey: 'status.cancelled' },
+  { value: 'pending', label: 'รอการชำระเงิน' },
+  { value: 'paid', label: 'ชำระแล้ว - รอยืนยัน' },
+  { value: 'confirmed', label: 'ยืนยันแล้ว' },
+  { value: 'shipped', label: 'จัดส่งแล้ว' },
+  { value: 'delivered', label: 'ได้รับแล้ว' },
+  { value: 'cancelled', label: 'ยกเลิก' },
 ]
 
 export default function AdminOrderDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const t = useTranslations()
   const [order, setOrder] = useState<(Order & { items: OrderItem[] }) | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -61,8 +68,8 @@ export default function AdminOrderDetailPage() {
         await createNotification(supabase, {
           user_id: order.user_id,
           type: 'order_update',
-          title: t('admin.orderDetail.notifTitle'),
-          message: t('admin.orderDetail.notifMessage', { id: String(order.id), status: newStatus }),
+          title: 'สถานะคำสั่งซื้อเปลี่ยนแปลง',
+          message: `คำสั่งซื้อ #${order.id} เป็น "${statusLabels[newStatus] || newStatus}" แล้ว`,
           link: `/orders/${order.id}`,
         })
       } catch {} // notification is best-effort
@@ -90,7 +97,7 @@ export default function AdminOrderDetailPage() {
           <Link href="/admin/orders"><ArrowLeft size={18} /></Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">{t('admin.orderDetail.title', { id: String(order.id) })}</h1>
+          <h1 className="text-2xl font-bold">คำสั่งซื้อ #{order.id}</h1>
           <p className="text-sm text-muted-foreground">
             {new Date(order.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </p>
@@ -99,33 +106,33 @@ export default function AdminOrderDetailPage() {
 
       <Card>
         <CardContent className="p-4 space-y-3">
-        <h2 className="font-semibold">{t('admin.orderDetail.status')}</h2>
+        <h2 className="font-semibold">สถานะ</h2>
         <div className="flex flex-col sm:flex-row items-end gap-3">
           <div className="space-y-1.5 flex-1">
-            <Label>{t('admin.orderDetail.updateStatus')}</Label>
+            <Label>อัปเดตสถานะ</Label>
             <Select value={newStatus} onValueChange={setNewStatus}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>{t(opt.labelKey)}</SelectItem>
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <Button onClick={handleUpdateStatus} disabled={saving || newStatus === order.status}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : t('admin.orderDetail.update')}
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'อัปเดต'}
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          {t('admin.orderDetail.current')} <span className="font-medium">{t('status.' + order.status)}</span>
+          ปัจจุบัน: <span className="font-medium">{statusLabels[order.status] || order.status}</span>
         </p>
       </CardContent></Card>
 
       <Card>
         <CardContent className="p-4 space-y-3">
-        <h2 className="font-semibold">{t('admin.orderDetail.items')}</h2>
+        <h2 className="font-semibold">รายการ</h2>
         {order.items.map((item) => (
           <div key={item.id} className="flex justify-between text-sm gap-2">
             <div className="min-w-0">
@@ -137,14 +144,14 @@ export default function AdminOrderDetailPage() {
         ))}
         <Separator />
         <div className="flex justify-between font-semibold text-base">
-          <span>{t('admin.orderDetail.total')}</span>
+          <span>ยอดรวม</span>
           <span>฿{order.total_amount.toLocaleString()}</span>
         </div>
       </CardContent></Card>
 
       <Card>
         <CardContent className="p-4 space-y-1 text-sm">
-        <h2 className="font-semibold mb-2">{t('admin.orderDetail.shippingAddress')}</h2>
+        <h2 className="font-semibold mb-2">ที่อยู่จัดส่ง</h2>
         <p>{order.shipping_name}</p>
         <p>{order.shipping_phone}</p>
         <p>{order.shipping_address}</p>
@@ -153,15 +160,14 @@ export default function AdminOrderDetailPage() {
         {order.note && (
           <>
             <Separator className="my-2" />
-            <p className="text-muted-foreground">{t('admin.orderDetail.note')} {order.note}</p>
+            <p className="text-muted-foreground">หมายเหตุ: {order.note}</p>
           </>
         )}
       </CardContent></Card>
 
       {order.slip_url && (
         <section className="space-y-2">
-          <h2 className="font-semibold">{t('admin.orderDetail.paymentSlip')}</h2>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <h2 className="font-semibold">สลิปการโอน</h2>
           <img src={order.slip_url} alt="Payment Slip" className="max-w-full rounded border" />
         </section>
       )}

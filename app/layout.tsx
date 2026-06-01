@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
-import { NextIntlClientProvider } from "next-intl";
-import { getMessages } from "next-intl/server";
 import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
@@ -28,38 +26,34 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const messages = await getMessages();
-
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="th" suppressHydrationWarning>
       <body className={`${geistSans.className} antialiased`} suppressHydrationWarning>
-        <NextIntlClientProvider messages={messages}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <ColorThemeProvider>
-            <CartProvider>
-              <div className="min-h-screen flex flex-col pb-16 md:pb-0">
-                <Header />
-                <main className="flex-1">
-                  {children}
-                </main>
-                <Suspense fallback={null}><Footer /></Suspense>
-                <Suspense fallback={null}><MobileBottomNav /></Suspense>
-              </div>
-            </CartProvider>
-            </ColorThemeProvider>
-            <Toaster />
-          </ThemeProvider>
-        </NextIntlClientProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ColorThemeProvider>
+          <CartProvider>
+            <div className="min-h-screen flex flex-col pb-16 md:pb-0">
+              <Header />
+              <main className="flex-1">
+                {children}
+              </main>
+              <Suspense fallback={null}><Footer /></Suspense>
+              <Suspense fallback={null}><MobileBottomNav /></Suspense>
+            </div>
+          </CartProvider>
+          </ColorThemeProvider>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

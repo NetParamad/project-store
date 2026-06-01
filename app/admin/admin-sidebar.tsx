@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useTranslations } from 'next-intl'
 import {
   LayoutDashboard,
   Package,
@@ -28,15 +27,14 @@ import { useState } from 'react'
 
 function SidebarNav({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const pathname = usePathname()
-  const t = useTranslations('admin.sidebar')
 
   const navItems = [
-    { href: '/admin', label: t('dashboard'), icon: LayoutDashboard },
-    { href: '/admin/products', label: t('products'), icon: Package },
-    { href: '/admin/categories', label: t('categories'), icon: Tags },
-    { href: '/admin/orders', label: t('orders'), icon: ShoppingCart },
-    { href: '/admin/appointments', label: t('appointments'), icon: CalendarDays },
-    { href: '/admin/settings', label: t('settings'), icon: Settings },
+    { href: '/admin', label: 'แดชบอร์ด', icon: LayoutDashboard },
+    { href: '/admin/products', label: 'สินค้า', icon: Package },
+    { href: '/admin/categories', label: 'หมวดหมู่', icon: Tags },
+    { href: '/admin/orders', label: 'คำสั่งซื้อ', icon: ShoppingCart },
+    { href: '/admin/appointments', label: 'การนัดหมาย', icon: CalendarDays },
+    { href: '/admin/settings', label: 'ตั้งค่า', icon: Settings },
   ]
 
   return (
@@ -44,7 +42,7 @@ function SidebarNav({ collapsed, onToggle }: { collapsed: boolean; onToggle: () 
       <div className="flex items-center justify-between p-4 h-16 border-b">
         {!collapsed && (
           <Link href="/admin" className="font-bold text-lg whitespace-nowrap">
-            {t('panel')}
+            แผงจัดการ
           </Link>
         )}
         <Button
@@ -91,7 +89,7 @@ function SidebarNav({ collapsed, onToggle }: { collapsed: boolean; onToggle: () 
           )}
         >
           <House size={18} className="shrink-0" />
-          {!collapsed && <span>{t('backToStore')}</span>}
+          {!collapsed && <span>กลับหน้าร้าน</span>}
         </Link>
       </div>
     </>
@@ -101,19 +99,18 @@ function SidebarNav({ collapsed, onToggle }: { collapsed: boolean; onToggle: () 
 export function AdminSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
-  const t = useTranslations('admin.sidebar')
 
   const bottomTabs = [
-    { href: '/admin', label: t('dashboard'), icon: LayoutDashboard },
-    { href: '/admin/products', label: t('products'), icon: Package },
-    { href: '/admin/orders', label: t('orders'), icon: ShoppingCart },
-    { href: '/admin/appointments', label: t('appointments'), icon: CalendarDays },
+    { href: '/admin', label: 'แดชบอร์ด', icon: LayoutDashboard },
+    { href: '/admin/products', label: 'สินค้า', icon: Package },
+    { href: '/admin/orders', label: 'คำสั่งซื้อ', icon: ShoppingCart },
+    { href: '/admin/appointments', label: 'การนัดหมาย', icon: CalendarDays },
   ]
 
   const overflowItems = [
-    { href: '/admin/categories', label: t('categories'), icon: Tags },
-    { href: '/admin/settings', label: t('settings'), icon: Settings },
-    { href: '/', label: t('backToStore'), icon: House },
+    { href: '/admin/categories', label: 'หมวดหมู่', icon: Tags },
+    { href: '/admin/settings', label: 'ตั้งค่า', icon: Settings },
+    { href: '/', label: 'กลับหน้าร้าน', icon: House },
   ]
 
   return (
@@ -153,14 +150,14 @@ export function AdminSidebar() {
                 className="flex-col gap-0.5 flex-1 h-full rounded-none text-muted-foreground hover:text-foreground"
               >
                 <Menu size={20} />
-                <span className="text-[10px] font-medium">{t('more')}</span>
+                <span className="text-[10px] font-medium">เพิ่มเติม</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-72 max-w-[85vw] p-0">
-              <SheetTitle className="sr-only">{t('panel')}</SheetTitle>
+              <SheetTitle className="sr-only">แผงจัดการ</SheetTitle>
               <div className="flex flex-col h-full">
                 <div className="flex items-center justify-between p-4 h-16 border-b">
-                  <Link href="/admin" className="font-bold text-lg">{t('panel')}</Link>
+                  <Link href="/admin" className="font-bold text-lg">แผงจัดการ</Link>
                 </div>
                 <nav className="flex-1 p-2 space-y-1">
                   {overflowItems.map((item) => {

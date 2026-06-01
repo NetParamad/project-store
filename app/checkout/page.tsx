@@ -2,11 +2,9 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { useTranslations, useLocale } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { useCart } from '@/components/cart-provider'
 import { getStoreSettings } from '@/lib/supabase/queries'
-import { useField } from '@/lib/i18n'
 import { Loader2, Upload, CheckCircle, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -19,7 +17,6 @@ import type { StoreSettings } from '@/lib/db.types'
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const locale = useLocale()
   const { items, totalPrice, clearCart } = useCart()
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null)
   const [user, setUser] = useState<{ id: string } | null>(null)
@@ -27,7 +24,6 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState<{ orderId: number } | null>(null)
   const [error, setError] = useState('')
-  const t = useTranslations('checkout')
 
   const [shipping, setShipping] = useState({
     name: '',
@@ -69,7 +65,7 @@ export default function CheckoutPage() {
 
       const orderItems = items.map((item) => ({
         product_id: item.product.id,
-        product_name: useField(locale, item.product.name_th, item.product.name_en),
+        product_name: item.product.name_th,
         type: 'buy' as const,
         quantity: item.quantity,
         unit_price: item.product.price,
@@ -158,6 +154,18 @@ export default function CheckoutPage() {
       }
 
       clearCart()
+
+      try {
+        const { createNotification } = await import('@/lib/supabase/queries')
+        await createNotification(supabase, {
+          user_id: user.id,
+          type: 'order_update',
+          title: 'คำสั่งซื้อใหม่',
+          message: `คำสั่งซื้อ #${order.id} ของคุณถูกวางแล้ว`,
+          link: `/orders/${order.id}`,
+        })
+      } catch {} // best-effort
+
       setDone({ orderId: order.id })
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -178,16 +186,16 @@ export default function CheckoutPage() {
     return (
       <div className="max-w-lg mx-auto px-4 py-16 text-center space-y-4">
         <CheckCircle size={48} className="mx-auto text-green-600" />
-        <h1 className="text-2xl font-bold">{t('orderPlaced')}</h1>
+        <h1 className="text-2xl font-bold">สั่งซื้อสำเร็จ!</h1>
         <p className="text-muted-foreground">
-          {t('thankYou')}
+          ขอบคุณสำหรับคำสั่งซื้อ เราจะตรวจสอบการชำระเงินและยืนยันโดยเร็ว
         </p>
         <div className="flex gap-3 justify-center pt-4">
           <Button asChild variant="outline">
-            <Link href="/orders">{t('viewOrders')}</Link>
+            <Link href="/orders">ดูคำสั่งซื้อ</Link>
           </Button>
           <Button asChild>
-            <Link href="/products">{t('goShopping')}</Link>
+            <Link href="/products">เลือกซื้อต่อ</Link>
           </Button>
         </div>
       </div>
@@ -198,9 +206,9 @@ export default function CheckoutPage() {
     return (
       <div className="max-w-lg mx-auto px-4 py-16 text-center space-y-4">
         <AlertCircle size={48} className="mx-auto text-muted-foreground" />
-        <h1 className="text-2xl font-bold">{t('cartEmpty')}</h1>
+        <h1 className="text-2xl font-bold">ตะกร้าว่างเปล่า</h1>
         <Button asChild>
-          <Link href="/products">{t('goShopping')}</Link>
+          <Link href="/products">เลือกซื้อต่อ</Link>
         </Button>
       </div>
     )
@@ -208,7 +216,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-      <h1 className="text-3xl font-bold">{t('title')}</h1>
+      <h1 className="text-3xl font-bold">ชำระเงิน</h1>
 
       {error && (
         <div className="rounded-lg bg-destructive/10 text-destructive text-sm p-3">
@@ -219,81 +227,81 @@ export default function CheckoutPage() {
       <div className="grid md:grid-cols-5 gap-8">
         <div className="md:col-span-3 space-y-6">
           <section className="space-y-4">
-            <h2 className="text-lg font-semibold">{t('shippingAddress')}</h2>
+            <h2 className="text-lg font-semibold">ที่อยู่จัดส่ง</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2 space-y-1.5">
-                <Label>{t('fullName')} <span className="text-destructive">*</span></Label>
+                <Label>ชื่อ-นามสกุล <span className="text-destructive">*</span></Label>
                 <Input value={shipping.name} onChange={(e) => setShipping({ ...shipping, name: e.target.value })} placeholder="John Doe" required />
               </div>
               <div className="sm:col-span-2 space-y-1.5">
-                <Label>{t('phone')} <span className="text-destructive">*</span></Label>
+                <Label>เบอร์โทรศัพท์ <span className="text-destructive">*</span></Label>
                 <Input value={shipping.phone} onChange={(e) => setShipping({ ...shipping, phone: e.target.value })} placeholder="08X-XXX-XXXX" required pattern="[0-9]{10}" title="กรุณากรอกเบอร์โทร 10 หลัก" />
               </div>
               <div className="sm:col-span-2 space-y-1.5">
-                <Label>{t('address')} <span className="text-destructive">*</span></Label>
+                <Label>ที่อยู่ <span className="text-destructive">*</span></Label>
                 <Textarea value={shipping.address} onChange={(e) => setShipping({ ...shipping, address: e.target.value })} placeholder="House/ Building / Street" required />
               </div>
               <div className="space-y-1.5">
-                <Label>{t('subdistrict')} <span className="text-destructive">*</span></Label>
+                <Label>ตำบล <span className="text-destructive">*</span></Label>
                 <Input value={shipping.subdistrict} onChange={(e) => setShipping({ ...shipping, subdistrict: e.target.value })} required />
               </div>
               <div className="space-y-1.5">
-                <Label>{t('district')} <span className="text-destructive">*</span></Label>
+                <Label>อำเภอ <span className="text-destructive">*</span></Label>
                 <Input value={shipping.district} onChange={(e) => setShipping({ ...shipping, district: e.target.value })} required />
               </div>
               <div className="space-y-1.5">
-                <Label>{t('province')} <span className="text-destructive">*</span></Label>
+                <Label>จังหวัด <span className="text-destructive">*</span></Label>
                 <Input value={shipping.province} onChange={(e) => setShipping({ ...shipping, province: e.target.value })} required />
               </div>
               <div className="space-y-1.5">
-                <Label>{t('zip')} <span className="text-destructive">*</span></Label>
+                <Label>รหัสไปรษณีย์ <span className="text-destructive">*</span></Label>
                 <Input value={shipping.zip} onChange={(e) => setShipping({ ...shipping, zip: e.target.value })} required pattern="[0-9]{5}" title="กรุณากรอกรหัสไปรษณีย์ 5 หลัก" />
               </div>
             </div>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-lg font-semibold">{t('payment')}</h2>
+            <h2 className="text-lg font-semibold">การชำระเงิน</h2>
             {storeSettings && (
               <Card><CardContent className="p-4 space-y-3 text-sm">
                 {storeSettings.promptpay_qr_url && (
                   <div>
-                    <p className="font-medium mb-2">{t('promptpay')}</p>
+                    <p className="font-medium mb-2">พร้อมเพย์</p>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={storeSettings.promptpay_qr_url} alt="PromptPay QR" className="w-40 h-40 object-contain border rounded" />
                   </div>
                 )}
                 {storeSettings.bank_name && (
                   <div className="space-y-1">
-                    <p className="font-medium">{t('bankTransfer')}</p>
-                    <p>{t('bank')}: {storeSettings.bank_name}</p>
-                    <p>{t('account')}: {storeSettings.bank_account}</p>
-                    <p>{t('name')}: {storeSettings.bank_account_name}</p>
+                    <p className="font-medium">โอนเงินผ่านธนาคาร</p>
+                    <p>ธนาคาร: {storeSettings.bank_name}</p>
+                    <p>เลขบัญชี: {storeSettings.bank_account}</p>
+                    <p>ชื่อบัญชี: {storeSettings.bank_account_name}</p>
                   </div>
                 )}
               </CardContent></Card>
             )}
 
             <div className="space-y-1.5">
-              <Label>{t('uploadSlip')} <span className="text-destructive">*</span></Label>
+              <Label>อัปโหลดสลิปการโอนเงิน <span className="text-destructive">*</span></Label>
               <Input type="file" accept="image/*" onChange={(e) => setSlipFile(e.target.files?.[0] ?? null)} />
               {slipFile && <p className="text-xs text-muted-foreground">{slipFile.name}</p>}
             </div>
           </section>
 
           <section className="space-y-2">
-            <Label>{t('orderNote')}</Label>
-            <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('anyInstructions')} />
+            <Label>หมายเหตุเพิ่มเติม (ไม่บังคับ)</Label>
+            <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="คำแนะนำพิเศษ..." />
           </section>
         </div>
 
         <div className="md:col-span-2 space-y-4">
           <Card><CardContent className="p-4 space-y-3">
-            <h2 className="font-semibold">{t('orderSummary')}</h2>
+            <h2 className="font-semibold">สรุปคำสั่งซื้อ</h2>
             {items.map((item) => (
               <div key={item.id} className="flex justify-between text-sm">
                 <div className="flex-1 min-w-0">
-                  <p className="truncate">{useField(locale, item.product.name_th, item.product.name_en)}</p>
+                  <p className="truncate">{item.product.name_th}</p>
                   <p className="text-muted-foreground text-xs">
                     BUY x{item.quantity}
                   </p>
@@ -305,16 +313,16 @@ export default function CheckoutPage() {
             ))}
             <Separator />
             <div className="flex justify-between font-semibold text-base">
-              <span>{t('total')}</span>
+              <span>ยอดรวม</span>
               <span>฿{totalPrice.toLocaleString()}</span>
             </div>
           </CardContent></Card>
 
           <Button className="w-full" size="lg" disabled={!valid || submitting} onClick={handleSubmit}>
             {submitting ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('processing')}</>
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> กำลังดำเนินการ...</>
             ) : (
-              <><Upload className="mr-2 h-4 w-4" /> {t('placeOrder')} (฿{totalPrice.toLocaleString()})</>
+              <><Upload className="mr-2 h-4 w-4" /> สั่งซื้อ (฿{totalPrice.toLocaleString()})</>
             )}
           </Button>
         </div>

@@ -1,7 +1,6 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useTranslations } from 'next-intl'
 import { Search, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -12,7 +11,6 @@ export function SearchBar() {
   const searchParams = useSearchParams()
   const currentSearch = searchParams.get('search') ?? ''
   const [value, setValue] = useState(currentSearch)
-  const t = useTranslations('products')
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -40,7 +38,7 @@ export function SearchBar() {
       <Input
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder={t('search')}
+        placeholder="ค้นหาสินค้า..."
         className="pl-9 pr-9"
       />
       {value && (

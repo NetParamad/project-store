@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { useTranslations } from 'next-intl'
 import { useCart } from '@/components/cart-provider'
 import { createClient } from '@/lib/supabase/client'
 import { House, Package, ShoppingCart, User } from 'lucide-react'
@@ -12,7 +11,6 @@ import { cn } from '@/lib/utils'
 export function MobileBottomNav() {
   const pathname = usePathname()
   const { totalItems } = useCart()
-  const t = useTranslations()
   const [hydrated, setHydrated] = useState(false)
   const [loggedIn, setLoggedIn] = useState(false)
 
@@ -28,12 +26,12 @@ export function MobileBottomNav() {
   if (pathname.startsWith('/checkout')) return null
 
   const tabs = [
-    { href: '/', label: t('nav.home'), icon: House },
-    { href: '/products', label: t('nav.products'), icon: Package },
-    { href: '/cart', label: t('nav.cart'), icon: ShoppingCart },
+    { href: '/', label: 'หน้าแรก', icon: House },
+    { href: '/products', label: 'สินค้า', icon: Package },
+    { href: '/cart', label: 'ตะกร้า', icon: ShoppingCart },
     {
       href: loggedIn ? '/profile' : '/auth/login',
-      label: loggedIn ? t('nav.account') : t('auth.login'),
+      label: loggedIn ? 'บัญชี' : 'เข้าสู่ระบบ',
       icon: User,
     },
   ]

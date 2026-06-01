@@ -1,15 +1,23 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { getTranslations, getLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
-import { getProfile, getStoreSettings } from "@/lib/supabase/queries";
-import { useField } from "@/lib/i18n";
+import { getStoreSettings } from "@/lib/supabase/queries";
 import { AuthButton } from "./auth-button";
 import { ThemeSwitcher } from "./theme-switcher";
 import { CartButton } from "./cart-button";
 import { NotificationBell } from "./notification-bell";
-import { LocaleSwitcher } from "./locale-switcher";
 import { NavLinks } from "./nav-links";
+
+function RingsIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <circle cx="9.5" cy="13" r="5.5" />
+      <circle cx="14.5" cy="13" r="5.5" />
+      <path d="M9.5 7.5L11 3h-3l1.5 4.5" />
+      <path d="M14.5 7.5L13 3h3l-1.5 4.5" />
+    </svg>
+  );
+}
 
 function AuthSection() {
   return <AuthButton />;
@@ -21,14 +29,8 @@ function AuthSectionSkeleton() {
 
 export async function Header() {
   const supabase = await createClient();
-  const [t, locale, settings] = await Promise.all([
-    getTranslations("nav"),
-    getLocale(),
-    getStoreSettings(supabase),
-  ]);
-  const storeName = settings
-    ? useField(locale, settings.store_name_th, settings.store_name_en)
-    : t("myStore");
+  const settings = await getStoreSettings(supabase);
+  const storeName = settings?.store_name_th || 'ร้านของฉัน';
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -36,13 +38,14 @@ export async function Header() {
           <div className="flex items-center gap-4 sm:gap-8 min-w-0">
             <Link
               href="/"
-              className="text-xl font-bold hover:text-primary transition-colors truncate shrink-0 max-w-[160px] sm:max-w-none"
+              className="flex items-center gap-2 text-xl font-bold hover:text-primary transition-colors truncate shrink-0 max-w-[160px] sm:max-w-none"
             >
-              {storeName}
+              <RingsIcon className="w-6 h-6 text-primary" />
+              <span>{storeName}</span>
             </Link>
 
             <nav className="hidden md:flex items-center gap-6">
-              <NavLinks labels={{ home: t("home"), products: t("products"), about: t("about"), contact: t("contact") }} />
+              <NavLinks labels={{ home: "หน้าแรก", products: "สินค้า", about: "เกี่ยวกับ", contact: "ติดต่อ" }} />
             </nav>
           </div>
 
@@ -51,7 +54,6 @@ export async function Header() {
               <NotificationBell />
             </Suspense>
             <CartButton />
-            <LocaleSwitcher />
             <ThemeSwitcher />
             <Suspense fallback={<AuthSectionSkeleton />}>
               <AuthSection />

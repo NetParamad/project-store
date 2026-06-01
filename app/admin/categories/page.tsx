@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getCategories } from '@/lib/supabase/queries'
-import { getTranslations } from 'next-intl/server'
 import { Plus, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DeleteCategoryButton } from './delete-category-button'
@@ -11,21 +10,20 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 export default async function CategoriesPage() {
   const supabase = await createClient()
   const categories = await getCategories(supabase)
-  const t = await getTranslations()
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-3xl font-bold">{t('admin.categories.title')}</h1>
+          <h1 className="text-3xl font-bold">หมวดหมู่</h1>
           <p className="text-muted-foreground mt-1">
-            {t('admin.categories.subtitle')}
+            จัดการหมวดหมู่สินค้า
           </p>
         </div>
         <Link href="/admin/categories/new">
           <Button>
             <Plus size={16} className="mr-2" />
-            {t('admin.categories.addCategory')}
+            เพิ่มหมวดหมู่
           </Button>
         </Link>
       </div>
@@ -35,19 +33,19 @@ export default async function CategoriesPage() {
         <Table style={{ minWidth: 700 }}>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="px-4 py-3 font-medium">{t('admin.categories.columns.id')}</TableHead>
-              <TableHead className="px-4 py-3 font-medium">{t('admin.categories.columns.nameTH')}</TableHead>
-              <TableHead className="px-4 py-3 font-medium">{t('admin.categories.columns.nameEN')}</TableHead>
-              <TableHead className="px-4 py-3 font-medium">{t('admin.categories.columns.slug')}</TableHead>
-              <TableHead className="px-4 py-3 font-medium">{t('admin.categories.columns.order')}</TableHead>
-              <TableHead className="px-4 py-3 text-right font-medium">{t('admin.categories.columns.actions')}</TableHead>
+              <TableHead className="px-4 py-3 font-medium">ID</TableHead>
+              <TableHead className="px-4 py-3 font-medium">ชื่อ (TH)</TableHead>
+              <TableHead className="px-4 py-3 font-medium">ชื่อ (EN)</TableHead>
+              <TableHead className="px-4 py-3 font-medium">Slug</TableHead>
+              <TableHead className="px-4 py-3 font-medium">ลำดับ</TableHead>
+              <TableHead className="px-4 py-3 text-right font-medium">จัดการ</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {categories.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                  {t('admin.categories.empty')}
+                  ไม่มีหมวดหมู่
                 </TableCell>
               </TableRow>
             ) : (

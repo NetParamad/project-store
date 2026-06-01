@@ -1,6 +1,5 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 
@@ -9,14 +8,13 @@ interface Props {
 }
 
 export function RevenueChart({ data }: Props) {
-  const t = useTranslations('admin.dashboard')
   const displayed = data.filter((d) => d.revenue > 0)
   if (displayed.length === 0) return null
 
   return (
     <Card>
       <CardHeader className="p-4 pb-0">
-        <CardTitle className="text-sm font-semibold">{t('revenueTitle')}</CardTitle>
+        <CardTitle className="text-sm font-semibold">รายได้ (30 วันที่ผ่านมา)</CardTitle>
       </CardHeader>
       <CardContent className="p-4">
       <div className="h-64">

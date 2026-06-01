@@ -2,7 +2,6 @@
 
 import { useRouter, useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { getOrder } from '@/lib/supabase/queries'
 import { Loader2, ArrowLeft, CheckCircle, Circle } from 'lucide-react'
@@ -14,10 +13,19 @@ import type { Order, OrderItem } from '@/lib/db.types'
 
 const statusSteps = ['pending', 'paid', 'confirmed', 'shipped', 'delivered']
 
+const statusLabels: Record<string, string> = {
+  pending: 'รอการชำระเงิน',
+  paid: 'ชำระแล้ว - รอยืนยัน',
+  confirmed: 'ยืนยันแล้ว',
+  shipped: 'จัดส่งแล้ว',
+  delivered: 'ได้รับแล้ว',
+  completed: 'เสร็จสิ้น',
+  cancelled: 'ยกเลิก',
+}
+
 export default function OrderDetailPage() {
   const router = useRouter()
   const params = useParams()
-  const t = useTranslations()
   const [order, setOrder] = useState<(Order & { items: OrderItem[] }) | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -59,7 +67,7 @@ export default function OrderDetailPage() {
           <Link href="/orders"><ArrowLeft size={18} /></Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">{t('orders.orderNum')}{order.id}</h1>
+          <h1 className="text-2xl font-bold">คำสั่งซื้อ #{order.id}</h1>
           <p className="text-sm text-muted-foreground">
             {new Date(order.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </p>
@@ -69,7 +77,7 @@ export default function OrderDetailPage() {
       {order.status === 'cancelled' ? (
         <Card className="bg-red-50 border-red-200 text-center text-red-700 font-medium">
           <CardContent className="p-4">
-            {t('orders.cancelled')}
+            คำสั่งซื้อนี้ถูกยกเลิกแล้ว
           </CardContent>
         </Card>
       ) : (
@@ -84,7 +92,7 @@ export default function OrderDetailPage() {
                 <Circle className="w-5 h-5 text-muted-foreground/30 shrink-0" />
               )}
               <span className={idx <= currentStep ? 'font-medium' : 'text-muted-foreground'}>
-                {t(`status.${step}`)}
+                {statusLabels[step]}
               </span>
             </div>
           ))}
@@ -93,7 +101,7 @@ export default function OrderDetailPage() {
 
       <Card>
         <CardContent className="p-4 space-y-3">
-        <h2 className="font-semibold">{t('orders.items')}</h2>
+        <h2 className="font-semibold">รายการ</h2>
         {order.items.map((item) => (
           <div key={item.id} className="flex justify-between text-sm">
             <div className="min-w-0 flex-1">
@@ -105,14 +113,14 @@ export default function OrderDetailPage() {
         ))}
         <Separator />
         <div className="flex justify-between font-semibold text-base">
-          <span>{t('orders.total')}</span>
+          <span>ยอดรวม</span>
           <span>฿{order.total_amount.toLocaleString()}</span>
         </div>
       </CardContent></Card>
 
       <Card>
         <CardContent className="p-4 space-y-1 text-sm">
-        <h2 className="font-semibold mb-2">{t('orders.shippingAddress')}</h2>
+        <h2 className="font-semibold mb-2">ที่อยู่จัดส่ง</h2>
         <p>{order.shipping_name}</p>
         <p>{order.shipping_phone}</p>
         <p>{order.shipping_address}</p>
@@ -121,14 +129,14 @@ export default function OrderDetailPage() {
         {order.note && (
           <>
             <Separator className="my-2" />
-            <p className="text-muted-foreground">{t('orders.note')}: {order.note}</p>
+            <p className="text-muted-foreground">หมายเหตุ: {order.note}</p>
           </>
         )}
       </CardContent></Card>
 
       {order.slip_url && (
         <section className="space-y-2">
-          <h2 className="font-semibold">{t('orders.paymentSlip')}</h2>
+          <h2 className="font-semibold">สลิปการโอน</h2>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={order.slip_url} alt="Payment Slip" className="max-w-xs rounded border" />
         </section>

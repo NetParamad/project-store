@@ -1,14 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { useTranslations, useLocale } from 'next-intl'
 import { ShoppingCart, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useCart } from '@/components/cart-provider'
-import { useField } from '@/lib/i18n'
 import type { Product } from '@/lib/db.types'
 import { toast } from 'sonner'
 
@@ -18,11 +16,9 @@ interface Props {
 }
 
 export function AddToCartButton({ product, outOfStock }: Props) {
-  const locale = useLocale()
   const { addItem } = useCart()
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
-  const t = useTranslations('products')
 
   function handleAdd() {
     const id = `${product.id}-buy`
@@ -34,7 +30,7 @@ export function AddToCartButton({ product, outOfStock }: Props) {
     })
 
     setAdded(true)
-    toast.success(`${useField(locale, product.name_th, product.name_en)} ${t('added')}`)
+    toast.success(`${product.name_th} เพิ่มแล้ว!`)
     setTimeout(() => setAdded(false), 2000)
   }
 
@@ -42,10 +38,10 @@ export function AddToCartButton({ product, outOfStock }: Props) {
     return (
       <Card className="border-destructive/30">
         <CardContent className="p-4 space-y-3">
-        <p className="text-sm font-medium text-destructive">{t('outOfStock')}</p>
+        <p className="text-sm font-medium text-destructive">สินค้าหมด</p>
         <Button disabled className="w-full h-12" size="lg">
           <ShoppingCart size={18} className="mr-2" />
-          {t('outOfStock')}
+          สินค้าหมด
         </Button>
       </CardContent></Card>
     )
@@ -57,7 +53,7 @@ export function AddToCartButton({ product, outOfStock }: Props) {
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <div className="space-y-1">
           <Label htmlFor="qty" className="text-xs">
-            {t('quantity')}
+            จำนวน
           </Label>
           <Input
             id="qty"
@@ -79,12 +75,12 @@ export function AddToCartButton({ product, outOfStock }: Props) {
           {added ? (
             <>
               <Check size={18} className="mr-2" />
-              {t('added')}
+              เพิ่มแล้ว!
             </>
           ) : (
             <>
               <ShoppingCart size={18} className="mr-2" />
-              {t('addToCart')}
+              เพิ่มในตะกร้า
             </>
           )}
         </Button>

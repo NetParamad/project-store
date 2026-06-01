@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { getTranslations, getLocale } from 'next-intl/server'
 import { ImageIcon } from 'lucide-react'
 import type { Product, ProductImage } from '@/lib/db.types'
 import { Badge } from '@/components/ui/badge'
@@ -10,15 +9,10 @@ interface Props {
 }
 
 export async function ProductCard({ product }: Props) {
-  const [t, locale] = await Promise.all([
-    getTranslations('products'),
-    getLocale(),
-  ])
   const primaryImage = product.images?.find((img) => img.is_primary) ?? product.images?.[0]
   const hasPurchase = Number(product.price) > 0 && Number(product.stock_qty) > 0
   const isOutOfStock = Number(product.stock_qty) <= 0
-  const displayName = locale === 'th' ? (product.name_th || product.name_en) : (product.name_en || product.name_th)
-  const secondaryName = locale === 'th' ? product.name_en : product.name_th
+  const displayName = product.name_th
 
   return (
     <Link
@@ -43,19 +37,16 @@ export async function ProductCard({ product }: Props) {
         )}
         <div className="absolute top-2 left-2 flex gap-1">
           {isOutOfStock ? (
-            <Badge variant="destructive" className="text-xs">{t('outOfStock')}</Badge>
+            <Badge variant="destructive" className="text-xs">สินค้าหมด</Badge>
           ) : (
             <>
-              {hasPurchase && <Badge variant="secondary" className="text-xs">{t('buy')}</Badge>}
+              {hasPurchase && <Badge variant="secondary" className="text-xs">ซื้อ</Badge>}
             </>
           )}
         </div>
       </div>
       <div className="p-3 space-y-1">
         <h3 className="font-medium text-sm line-clamp-1">{displayName}</h3>
-        {secondaryName && (
-          <p className="text-xs text-muted-foreground line-clamp-1">{secondaryName}</p>
-        )}
         {hasPurchase && (
           <span className="font-semibold text-sm pt-1">
             ฿{Number(product.price).toLocaleString()}

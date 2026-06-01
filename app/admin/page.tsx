@@ -1,4 +1,3 @@
-import { getTranslations, getLocale } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
 import { getCategories, getProducts, getDashboardStats } from '@/lib/supabase/queries'
 import Link from 'next/link'
@@ -8,11 +7,17 @@ import { Button } from '@/components/ui/button'
 import { RevenueChart } from './revenue-chart'
 import { OrdersByStatusChart } from './orders-status-chart'
 
+const statusLabels: Record<string, string> = {
+  pending: 'รอการชำระเงิน',
+  paid: 'ชำระแล้ว - รอยืนยัน',
+  confirmed: 'ยืนยันแล้ว',
+  shipped: 'จัดส่งแล้ว',
+  delivered: 'ได้รับแล้ว',
+  cancelled: 'ยกเลิก',
+}
+
 export default async function AdminDashboard() {
   const supabase = await createClient()
-  const locale = await getLocale()
-  const t = await getTranslations('admin.dashboard')
-  const st = await getTranslations('status')
   const [categories, products, stats] = await Promise.all([
     getCategories(supabase),
     getProducts(supabase),
@@ -24,37 +29,37 @@ export default async function AdminDashboard() {
 
   const statusCards = [
     {
-      title: t('totalOrders'),
+      title: 'คำสั่งซื้อทั้งหมด',
       value: stats.totalOrders,
       icon: ShoppingCart,
-      description: t('today', { count: stats.todayOrders }),
+      description: `${stats.todayOrders} วันนี้`,
     },
     {
-      title: t('totalRevenue'),
+      title: 'รายได้ทั้งหมด',
       value: `฿${stats.totalRevenue.toLocaleString()}`,
       icon: DollarSign,
-      description: t('allTimeExclCancelled'),
+      description: 'ทั้งหมด (ไม่รวมที่ยกเลิก)',
     },
     {
-      title: t('pendingOrders'),
+      title: 'รอดำเนินการ',
       value: stats.pendingOrders,
       icon: Clock,
-      description: t('awaitingAction'),
+      description: 'รอการดำเนินการ',
     },
     {
-      title: t('totalProducts'),
+      title: 'สินค้าทั้งหมด',
       value: products.length,
       icon: Package,
-      description: t('inactive', { count: inactiveProducts }),
+      description: `${inactiveProducts} รายการที่ปิดใช้งาน`,
     },
   ]
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">{t('title')}</h1>
+        <h1 className="text-3xl font-bold">แดชบอร์ด</h1>
         <p className="text-muted-foreground mt-1">
-          {t('subtitle')}
+          ภาพรวมของร้านค้า
         </p>
       </div>
 
@@ -88,21 +93,21 @@ export default async function AdminDashboard() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">{t('topProducts')}</CardTitle>
+            <CardTitle className="text-lg">สินค้าขายดี</CardTitle>
           </CardHeader>
           <CardContent>
             {stats.topProducts.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('noSales')}</p>
+              <p className="text-sm text-muted-foreground">ยังไม่มีรายการขาย</p>
             ) : (
               <div className="space-y-3">
                 {stats.topProducts.map((product, idx) => (
                   <div key={product.name} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground w-5">#{idx + 1}</span>
-                      <span className="truncate max-w-[120px] sm:max-w-[200px]">{locale === 'th' ? (product.name_th || product.name_en) : (product.name_en || product.name_th)}</span>
+                      <span className="truncate max-w-[120px] sm:max-w-[200px]">{product.name_th}</span>
                     </div>
                     <div className="flex items-center gap-3 text-muted-foreground">
-                      <span>{t('sold', { count: product.qty })}</span>
+                      <span>ขายแล้ว {product.qty}</span>
                       <span>฿{product.revenue.toLocaleString()}</span>
                     </div>
                   </div>
@@ -114,11 +119,11 @@ export default async function AdminDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">{t('recentOrders')}</CardTitle>
+            <CardTitle className="text-lg">คำสั่งซื้อล่าสุด</CardTitle>
           </CardHeader>
           <CardContent>
             {stats.recentOrders.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('noOrders')}</p>
+              <p className="text-sm text-muted-foreground">ยังไม่มีคำสั่งซื้อ</p>
             ) : (
               <div className="space-y-3">
                 {stats.recentOrders.map((order) => (
@@ -131,7 +136,7 @@ export default async function AdminDashboard() {
                         'bg-yellow-500'
                       }`} />
                       <span>#{order.id}</span>
-                      <span className="text-muted-foreground">{st(order.status)}</span>
+                      <span className="text-muted-foreground">{statusLabels[order.status] || order.status}</span>
                     </div>
                     <span>฿{Number(order.total_amount).toLocaleString()}</span>
                   </div>
@@ -145,45 +150,45 @@ export default async function AdminDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">{t('categories')}</CardTitle>
+            <CardTitle className="text-sm font-medium">หมวดหมู่</CardTitle>
             <Tags size={18} className="text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{categories.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">{t('productCategories')}</p>
+            <p className="text-xs text-muted-foreground mt-1">หมวดหมู่สินค้า</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">{t('stockPurchase')}</CardTitle>
+            <CardTitle className="text-sm font-medium">สต็อก (ซื้อ)</CardTitle>
             <ShoppingCart size={18} className="text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalStock}</div>
-            <p className="text-xs text-muted-foreground mt-1">{t('itemsAvailable')}</p>
+            <p className="text-xs text-muted-foreground mt-1">สินค้าที่มี</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">{t('appointments')}</CardTitle>
+            <CardTitle className="text-sm font-medium">การนัดหมาย</CardTitle>
             <CalendarRange size={18} className="text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalAppointments}</div>
-            <p className="text-xs text-muted-foreground mt-1">{t('todayAppointments', { count: stats.todayAppointments })}</p>
+            <p className="text-xs text-muted-foreground mt-1">{stats.todayAppointments} วันนี้</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">{t('quickActions')}</CardTitle>
+            <CardTitle className="text-sm font-medium">ดำเนินการด่วน</CardTitle>
             <TrendingUp size={18} className="text-muted-foreground" />
           </CardHeader>
           <CardContent className="space-y-2">
             <Button asChild className="w-full">
-              <Link href="/admin/products/new">{t('addProduct')}</Link>
+              <Link href="/admin/products/new">เพิ่มสินค้า</Link>
             </Button>
             <Button asChild variant="outline" className="w-full">
-              <Link href="/admin/orders">{t('viewOrders')}</Link>
+              <Link href="/admin/orders">ดูคำสั่งซื้อ</Link>
             </Button>
           </CardContent>
         </Card>

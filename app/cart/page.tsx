@@ -1,40 +1,36 @@
 'use client'
 
 import Link from 'next/link'
-import { useTranslations, useLocale } from 'next-intl'
 import { Trash2, Minus, Plus, ShoppingBag, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { useCart } from '@/components/cart-provider'
-import { useField } from '@/lib/i18n'
 
 export default function CartPage() {
-  const locale = useLocale()
   const { items, removeItem, updateQuantity, clearCart, totalItems, totalPrice } = useCart()
-  const t = useTranslations('cart')
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-      <h1 className="text-3xl font-bold">{t('title')}</h1>
+      <h1 className="text-3xl font-bold">ตะกร้าสินค้า</h1>
 
       {items.length === 0 ? (
         <div className="text-center py-16 space-y-4">
           <ShoppingBag size={48} className="mx-auto text-muted-foreground" />
-          <p className="text-muted-foreground">{t('emptyHint')}</p>
+          <p className="text-muted-foreground">ดูเหมือนคุณยังไม่ได้เพิ่มสินค้าใด ๆ</p>
           <Button asChild>
-            <Link href="/products">{t('continue')}</Link>
+            <Link href="/products">เลือกซื้อต่อ</Link>
           </Button>
         </div>
       ) : (
         <>
           <div className="flex items-center justify-between">
             <p className="text-muted-foreground">
-              {totalItems} {totalItems !== 1 ? t('items') : t('item')}
+              {totalItems} {totalItems !== 1 ? 'ชิ้น' : 'ชิ้น'}
             </p>
             <Button variant="outline" size="sm" onClick={clearCart}>
-              {t('clear')}
+              ล้างตะกร้า
             </Button>
           </div>
 
@@ -52,7 +48,7 @@ export default function CartPage() {
                     />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center text-muted-foreground text-xs">
-                      {t('noImg')}
+                      ไม่มีรูป
                     </div>
                   )}
                 </div>
@@ -62,7 +58,7 @@ export default function CartPage() {
                     href={`/products/${item.product.slug}`}
                     className="font-medium text-sm hover:underline line-clamp-1"
                   >
-                    {useField(locale, item.product.name_th, item.product.name_en)}
+                    {item.product.name_th}
                   </Link>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="secondary" className="rounded uppercase">
@@ -117,7 +113,7 @@ export default function CartPage() {
           <Separator />
 
           <div className="flex items-center justify-between">
-            <p className="text-lg font-semibold">{t('total')}</p>
+            <p className="text-lg font-semibold">รวม</p>
             <p className="text-2xl font-bold">
               ฿{totalPrice.toLocaleString()}
             </p>
@@ -127,11 +123,11 @@ export default function CartPage() {
             <Button asChild variant="outline">
               <Link href="/products">
                 <ArrowLeft size={16} className="mr-2" />
-                {t('continue')}
+                เลือกซื้อต่อ
               </Link>
             </Button>
             <Button className="w-full sm:flex-1" size="lg" asChild>
-              <Link href="/checkout">{t('checkout')}</Link>
+              <Link href="/checkout">ดำเนินการสั่งซื้อ</Link>
             </Button>
           </div>
         </>

@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation'
 import { Trash2 } from 'lucide-react'
-import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -20,7 +19,6 @@ export function DeleteCategoryButton({ id }: { id: number }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const t = useTranslations('admin.deleteCategory')
 
   async function handleDelete() {
     setLoading(true)
@@ -46,21 +44,21 @@ export function DeleteCategoryButton({ id }: { id: number }) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t('title')}</DialogTitle>
+          <DialogTitle>ลบหมวดหมู่</DialogTitle>
           <DialogDescription>
-            {t('message')}
+            แน่ใจหรือไม่ว่าต้องการลบหมวดหมู่นี้? การกระทำนี้ไม่สามารถย้อนกลับได้
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
-            {t('cancel')}
+            ยกเลิก
           </Button>
           <Button
             variant="destructive"
             onClick={handleDelete}
             disabled={loading}
           >
-            {loading ? t('deleting') : t('delete')}
+            {loading ? 'กำลังลบ...' : 'ลบ'}
           </Button>
         </DialogFooter>
       </DialogContent>

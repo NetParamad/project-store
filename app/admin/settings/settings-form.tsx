@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { useTranslations, useLocale } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import type { StoreSettings, StoreSettingsFormData } from '@/lib/db.types'
 import { Button } from '@/components/ui/button'
@@ -15,7 +14,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { Upload, Trash2, Check } from 'lucide-react'
+import { Upload, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { COLOR_THEMES, useColorTheme } from '@/components/color-theme-provider'
 import type { ColorTheme } from '@/components/color-theme-provider'
@@ -25,9 +24,18 @@ interface Props {
   initialData: StoreSettings | null
 }
 
+const themeLabel: Record<string, string> = {
+  zinc: 'ซิงค์',
+  rose: 'โรส',
+  blue: 'น้ำเงิน',
+  green: 'เขียว',
+  orange: 'ส้ม',
+  violet: 'ม่วง',
+  custom: 'กำหนดเอง',
+}
+
 export function SettingsForm({ initialData }: Props) {
   const router = useRouter()
-  const t = useTranslations('admin.settingsForm')
   const { setTheme: applyColorTheme } = useColorTheme()
   const [loading, setLoading] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
@@ -98,7 +106,7 @@ export function SettingsForm({ initialData }: Props) {
       .upload(filePath, file)
 
     if (uploadError) {
-      toast.error(t('uploadFailed'))
+      toast.error('อัปโหลดล้มเหลว')
       return null
     }
 
@@ -117,7 +125,7 @@ export function SettingsForm({ initialData }: Props) {
     const url = await uploadFile(file, 'logos')
     if (url) {
       setLogoUrl(url)
-      toast.success(t('logoUploaded'))
+      toast.success('อัปโหลดโลโก้สำเร็จ!')
     }
     setUploadingLogo(false)
   }
@@ -130,7 +138,7 @@ export function SettingsForm({ initialData }: Props) {
     const url = await uploadFile(file, 'promptpay')
     if (url) {
       setQrUrl(url)
-      toast.success(t('qrUploaded'))
+      toast.success('อัปโหลด QR สำเร็จ!')
     }
     setUploadingQR(false)
   }
@@ -177,12 +185,11 @@ export function SettingsForm({ initialData }: Props) {
       } else {
         applyColorTheme((form.theme || 'zinc') as ColorTheme)
       }
-      toast.success(t('settingsSaved'))
+      toast.success('บันทึกการตั้งค่าแล้ว!')
       router.refresh()
     } catch (err) {
       console.error('Settings save failed:', err)
-      const message = err instanceof Error ? err.message : typeof err === 'object' && err !== null ? JSON.stringify(err) : String(err)
-      toast.error(message || t('saveFailed'))
+      toast.error('บันทึกการตั้งค่าล้มเหลว')
     } finally {
       setLoading(false)
     }
@@ -192,12 +199,12 @@ export function SettingsForm({ initialData }: Props) {
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t('storeInfo')}</CardTitle>
+          <CardTitle>ข้อมูลร้านค้า</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="store_name_th">{t('storeNameThai')} <span className="text-destructive">*</span></Label>
+              <Label htmlFor="store_name_th">ชื่อร้าน (ภาษาไทย) <span className="text-destructive">*</span></Label>
               <Input
                 id="store_name_th"
                 value={form.store_name_th}
@@ -207,7 +214,7 @@ export function SettingsForm({ initialData }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="store_name_en">{t('storeNameEn')} <span className="text-destructive">*</span></Label>
+              <Label htmlFor="store_name_en">ชื่อร้าน (ภาษาอังกฤษ) <span className="text-destructive">*</span></Label>
               <Input
                 id="store_name_en"
                 value={form.store_name_en}
@@ -221,14 +228,13 @@ export function SettingsForm({ initialData }: Props) {
           <Separator />
 
           <div className="space-y-2">
-            <Label>{t('storeLogo')}</Label>
+            <Label>โลโก้ร้านค้า</Label>
             <div className="flex flex-col sm:flex-row items-center gap-4">
               {logoUrl && (
                 <div className="relative h-16 w-16 shrink-0 rounded-md border bg-muted overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={logoUrl}
-                    alt={t('logoAlt')}
+                    alt="โลโก้ร้านค้า"
                     className="h-full w-full object-cover"
                   />
                   <Button
@@ -247,7 +253,7 @@ export function SettingsForm({ initialData }: Props) {
                 className="flex items-center gap-2 px-4 py-2 rounded-md border border-input bg-background text-sm font-medium cursor-pointer hover:bg-accent transition-colors"
               >
                 <Upload size={16} />
-                {logoUrl ? t('changeLogo') : t('uploadLogo')}
+                {logoUrl ? 'เปลี่ยนโลโก้' : 'อัปโหลดโลโก้'}
               </Label>
               <Input
                 id="logo-upload"
@@ -258,7 +264,7 @@ export function SettingsForm({ initialData }: Props) {
                 disabled={uploadingLogo}
               />
               {uploadingLogo && (
-                <span className="text-sm text-muted-foreground">{t('uploading')}</span>
+                <span className="text-sm text-muted-foreground">กำลังอัปโหลด...</span>
               )}
             </div>
           </div>
@@ -267,12 +273,12 @@ export function SettingsForm({ initialData }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('businessHours')}</CardTitle>
+          <CardTitle>เวลาเปิดทำการ</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="business_hours_start">{t('businessHoursStart')}</Label>
+              <Label htmlFor="business_hours_start">เวลาเปิด</Label>
               <Input
                 id="business_hours_start"
                 type="time"
@@ -281,7 +287,7 @@ export function SettingsForm({ initialData }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="business_hours_end">{t('businessHoursEnd')}</Label>
+              <Label htmlFor="business_hours_end">เวลาปิด</Label>
               <Input
                 id="business_hours_end"
                 type="time"
@@ -295,12 +301,12 @@ export function SettingsForm({ initialData }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('contactInfo')}</CardTitle>
+          <CardTitle>ข้อมูลติดต่อ</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="address_th">{t('addressThai')}</Label>
+              <Label htmlFor="address_th">ที่อยู่ (ภาษาไทย)</Label>
               <Input
                 id="address_th"
                 value={form.address_th}
@@ -309,7 +315,7 @@ export function SettingsForm({ initialData }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="address_en">{t('addressEn')}</Label>
+              <Label htmlFor="address_en">ที่อยู่ (ภาษาอังกฤษ)</Label>
               <Input
                 id="address_en"
                 value={form.address_en}
@@ -320,7 +326,7 @@ export function SettingsForm({ initialData }: Props) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="email">{t('email')} <span className="text-destructive">*</span></Label>
+              <Label htmlFor="email">อีเมล <span className="text-destructive">*</span></Label>
               <Input
                 id="email"
                 type="email"
@@ -331,7 +337,7 @@ export function SettingsForm({ initialData }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">{t('phone')} <span className="text-destructive">*</span></Label>
+              <Label htmlFor="phone">เบอร์โทรศัพท์ <span className="text-destructive">*</span></Label>
               <Input
                 id="phone"
                 type="tel"
@@ -344,7 +350,7 @@ export function SettingsForm({ initialData }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="map_url">{t('mapUrl')}</Label>
+              <Label htmlFor="map_url">URL แผนที่</Label>
               <Input
                 id="map_url"
                 value={form.map_url}
@@ -358,12 +364,12 @@ export function SettingsForm({ initialData }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('socialMedia')}</CardTitle>
+          <CardTitle>โซเชียลมีเดีย</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="facebook_url">{t('facebookUrl')}</Label>
+              <Label htmlFor="facebook_url">URL Facebook</Label>
               <Input
                 id="facebook_url"
                 value={form.facebook_url}
@@ -372,7 +378,7 @@ export function SettingsForm({ initialData }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="instagram_url">{t('instagramUrl')}</Label>
+              <Label htmlFor="instagram_url">URL Instagram</Label>
               <Input
                 id="instagram_url"
                 value={form.instagram_url}
@@ -381,7 +387,7 @@ export function SettingsForm({ initialData }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="line_url">{t('lineUrl')}</Label>
+              <Label htmlFor="line_url">URL Line</Label>
               <Input
                 id="line_url"
                 value={form.line_url}
@@ -390,7 +396,7 @@ export function SettingsForm({ initialData }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tiktok_url">{t('tiktokUrl')}</Label>
+              <Label htmlFor="tiktok_url">URL TikTok</Label>
               <Input
                 id="tiktok_url"
                 value={form.tiktok_url}
@@ -399,7 +405,7 @@ export function SettingsForm({ initialData }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="youtube_url">{t('youtubeUrl')}</Label>
+              <Label htmlFor="youtube_url">URL YouTube</Label>
               <Input
                 id="youtube_url"
                 value={form.youtube_url}
@@ -413,7 +419,7 @@ export function SettingsForm({ initialData }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('colorTheme')}</CardTitle>
+          <CardTitle>ธีมสี</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
@@ -443,7 +449,7 @@ export function SettingsForm({ initialData }: Props) {
                     ))}
                   </div>
                   <span className="text-xs font-medium">
-                    {t('theme' + ct.value.charAt(0).toUpperCase() + ct.value.slice(1))}
+                    {themeLabel[ct.value] || ct.value}
                   </span>
                 </Button>
               )
@@ -452,7 +458,7 @@ export function SettingsForm({ initialData }: Props) {
 
           {form.theme === 'custom' && (
             <div className="mt-4 space-y-3">
-              <Label>{t('themeCustomColor')}</Label>
+              <Label>สีที่กำหนด</Label>
               <div className="flex items-center gap-3">
                 <Input
                   type="color"
@@ -474,7 +480,7 @@ export function SettingsForm({ initialData }: Props) {
                   {form.theme_custom_color || '#e11d48'}
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground">{t('themeCustomHint')}</p>
+              <p className="text-xs text-muted-foreground">รหัสสี Hex (เช่น #ff0000)</p>
             </div>
           )}
         </CardContent>
@@ -482,11 +488,11 @@ export function SettingsForm({ initialData }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('promptpay')}</CardTitle>
+          <CardTitle>พร้อมเพย์</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="promptpay_number">{t('promptpayNumber')}</Label>
+            <Label htmlFor="promptpay_number">เบอร์พร้อมเพย์</Label>
             <Input
               id="promptpay_number"
               value={form.promptpay_number}
@@ -496,14 +502,13 @@ export function SettingsForm({ initialData }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label>{t('promptpayQr')}</Label>
+            <Label>QR Code พร้อมเพย์</Label>
             <div className="flex flex-col sm:flex-row items-center gap-4">
               {qrUrl && (
                 <div className="relative h-24 w-24 shrink-0 rounded-md border bg-muted overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={qrUrl}
-                    alt={t('qrAlt')}
+                    alt="QR พร้อมเพย์"
                     className="h-full w-full object-cover"
                   />
                   <Button
@@ -522,7 +527,7 @@ export function SettingsForm({ initialData }: Props) {
                 className="flex items-center gap-2 px-4 py-2 rounded-md border border-input bg-background text-sm font-medium cursor-pointer hover:bg-accent transition-colors"
               >
                 <Upload size={16} />
-                {qrUrl ? t('changeQr') : t('uploadQr')}
+                {qrUrl ? 'เปลี่ยน QR' : 'อัปโหลด QR'}
               </Label>
               <Input
                 id="qr-upload"
@@ -533,7 +538,7 @@ export function SettingsForm({ initialData }: Props) {
                 disabled={uploadingQR}
               />
               {uploadingQR && (
-                <span className="text-sm text-muted-foreground">{t('uploading')}</span>
+                <span className="text-sm text-muted-foreground">กำลังอัปโหลด...</span>
               )}
             </div>
           </div>
@@ -542,12 +547,12 @@ export function SettingsForm({ initialData }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('bankAccount')}</CardTitle>
+          <CardTitle>บัญชีธนาคาร</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="bank_name">{t('bankName')}</Label>
+              <Label htmlFor="bank_name">ชื่อธนาคาร</Label>
               <Input
                 id="bank_name"
                 value={form.bank_name}
@@ -556,7 +561,7 @@ export function SettingsForm({ initialData }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="bank_account">{t('accountNumber')}</Label>
+              <Label htmlFor="bank_account">เลขที่บัญชี</Label>
               <Input
                 id="bank_account"
                 value={form.bank_account}
@@ -566,7 +571,7 @@ export function SettingsForm({ initialData }: Props) {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="bank_account_name">{t('accountName')}</Label>
+            <Label htmlFor="bank_account_name">ชื่อบัญชี</Label>
             <Input
               id="bank_account_name"
               value={form.bank_account_name}
@@ -579,7 +584,7 @@ export function SettingsForm({ initialData }: Props) {
 
       <div className="flex items-center gap-3 pb-8">
         <Button type="submit" disabled={loading}>
-          {loading ? t('saving') : t('saveSettings')}
+          {loading ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}
         </Button>
       </div>
     </form>

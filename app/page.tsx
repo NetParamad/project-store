@@ -1,11 +1,9 @@
 import Link from "next/link";
-import { getTranslations, getLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { getFeaturedProducts, getCategories } from "@/lib/supabase/queries";
 import { ProductCard } from "@/components/product-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useField } from "@/lib/i18n";
 import { Marquee } from "@/components/marquee";
 
 function RingsIcon({ className }: { className?: string }) {
@@ -21,19 +19,17 @@ function RingsIcon({ className }: { className?: string }) {
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const [featured, categories, t, locale] = await Promise.all([
+  const [featured, categories] = await Promise.all([
     getFeaturedProducts(supabase),
     getCategories(supabase),
-    getTranslations("home"),
-    getLocale(),
   ]);
 
   const features = [1, 2, 3, 4, 5, 6];
 
   const testimonials = [
-    { text: t("testimonial1"), author: t("testimonial1Author") },
-    { text: t("testimonial2"), author: t("testimonial2Author") },
-    { text: t("testimonial3"), author: t("testimonial3Author") },
+    { text: "ชุดสวยมาก! รู้สึกเหมือนเจ้าหญิงในวันแต่งงาน", author: "— สาระ & เจมส์" },
+    { text: "ขนาดพอดีตัวและคุณภาพเยี่ยม คำแนะนำเรื่องการแต่งตัวมีค่ามาก", author: "— ไมเคิล & ปรียา" },
+    { text: "ตั้งแต่ลองครั้งแรกจนถึงชุดสำเร็จ ทุกอย่างสมบูรณ์แบบ", author: "— เอมิลี่ & เดวิด" },
   ];
 
   return (
@@ -44,21 +40,21 @@ export default async function HomePage() {
         <RingsIcon className="absolute top-8 right-8 w-16 h-16 text-primary/10 rotate-12 hidden sm:block" />
         <RingsIcon className="absolute bottom-8 left-8 w-12 h-12 text-primary/10 -rotate-12 hidden sm:block" />
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
-          <p className="text-primary font-medium tracking-[0.25em] uppercase text-sm">
-            ✦ {t("heroCta")} ✦
+          <p className="text-primary font-medium tracking-[0.1em] uppercase text-sm">
+            ร้านเวดดิ้งเล็กๆ ที่เน้นคุณภาพ
           </p>
           <h1 className="text-4xl lg:text-6xl font-bold tracking-tight leading-tight">
-            {t("heroTitle")}
+            ความฝันในวันวิวาห์เริ่มต้นที่นี่
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            {t("heroSubtitle")}
+            พบกับคอลเลกชันชุดแต่งงาน สูท และเครื่องประดับสุดพิเศษสำหรับวันสำคัญของคุณ
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
             <Button asChild size="lg" className="min-w-[180px]">
-              <Link href="/products">{t("heroCta")}</Link>
+              <Link href="/products">เลือกชมสินค้า</Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="min-w-[180px]">
-              <Link href="/appointments/book">{t("heroBookCta")}</Link>
+              <Link href="/appointments/book">จองนัดหมาย</Link>
             </Button>
           </div>
         </div>
@@ -87,9 +83,9 @@ export default async function HomePage() {
         <section className="py-16 lg:py-24 bg-muted/30">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">{t("categories")}</h2>
+              <h2 className="text-2xl font-bold">หมวดหมู่</h2>
               <Link href="/products" className="text-sm text-primary hover:underline">
-                {t("browseAll")}
+                ดูทั้งหมด
               </Link>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -105,10 +101,7 @@ export default async function HomePage() {
                       />
                     </div>
                     <div className="p-3 text-center space-y-0.5">
-                      <p className="font-medium text-sm">{useField(locale, cat.name_th, cat.name_en)}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {locale === 'th' ? cat.name_en : cat.name_th}
-                      </p>
+                      <p className="font-medium text-sm">{cat.name_th}</p>
                     </div>
                   </Link>
                 </Card>
@@ -121,7 +114,9 @@ export default async function HomePage() {
       {/* Featured Products */}
       <section className="py-16 lg:py-24">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-          <h2 className="text-2xl font-bold">{t("featured")}</h2>
+          <div className="text-center space-y-2">
+            <p className="text-primary font-medium tracking-[0.1em] uppercase text-sm">เลือกชมสินค้า</p>
+          </div>
           {featured.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {featured.map((product) => (
@@ -129,11 +124,11 @@ export default async function HomePage() {
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground">{t("noFeatured")}</p>
+            <p className="text-muted-foreground">ยังไม่มีสินค้าแนะนำ</p>
           )}
           <div className="text-center">
             <Button asChild variant="outline" size="lg">
-              <Link href="/products">{t("browseAll")}</Link>
+              <Link href="/products">ดูทั้งหมด</Link>
             </Button>
           </div>
         </div>
@@ -143,7 +138,7 @@ export default async function HomePage() {
       <section className="py-16 lg:py-24 bg-muted/30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           <div className="text-center space-y-2">
-            <p className="text-primary font-medium tracking-[0.2em] uppercase text-sm">✦ {t("testimonials")} ✦</p>
+            <p className="text-primary font-medium tracking-[0.1em] uppercase text-sm">ความประทับใจจากคู่บ่าวสาว</p>
           </div>
           <Marquee>
             {[...testimonials, ...testimonials].map((item, idx) => (
@@ -172,7 +167,7 @@ export default async function HomePage() {
       <section className="py-16 lg:py-24">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           <div className="text-center space-y-2">
-            <p className="text-primary font-medium tracking-[0.2em] uppercase text-sm">✦ {t("gallery")} ✦</p>
+            <p className="text-primary font-medium tracking-[0.1em] uppercase text-sm">แรงบันดาลใจสำหรับวันวิวาห์</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {[1, 2, 3, 4, 5, 6].map((n) => (

@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation'
 import { useState, useRef } from 'react'
-import { useTranslations, useLocale } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import type { Category, Product, ProductImage } from '@/lib/db.types'
 import { Button } from '@/components/ui/button'
@@ -33,8 +32,6 @@ interface Props {
 
 export function ProductForm({ categories, initialData }: Props) {
   const router = useRouter()
-  const t = useTranslations('admin.productForm')
-  const locale = useLocale()
   const isEditing = !!initialData
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -131,10 +128,10 @@ export function ProductForm({ categories, initialData }: Props) {
         ])
       }
 
-      toast.success(t('imageUploaded'))
+      toast.success('อัปโหลดรูปภาพสำเร็จ!')
     } catch (err) {
       console.error(err)
-      toast.error(t('imageUploadFailed'))
+      toast.error('อัปโหลดรูปภาพล้มเหลว')
     } finally {
       setUploading(false)
     }
@@ -147,10 +144,10 @@ export function ProductForm({ categories, initialData }: Props) {
         await supabase.from('product_images').delete().eq('id', imageId)
       }
       setImages(images.filter((img) => img.id !== imageId))
-      toast.success(t('imageRemoved'))
+      toast.success('ลบรูปภาพแล้ว')
     } catch (err) {
       console.error(err)
-      toast.error(t('imageRemoveFailed'))
+      toast.error('ลบรูปภาพล้มเหลว')
     }
   }
 
@@ -181,10 +178,10 @@ export function ProductForm({ categories, initialData }: Props) {
           .map((img) => ({ ...img, is_primary: img.id === imageId }))
           .sort((a, b) => (a.is_primary ? -1 : b.is_primary ? 1 : 0))
       )
-      toast.success(t('primaryUpdated'))
+      toast.success('อัปเดตรูปหลักแล้ว')
     } catch (err) {
       console.error(err)
-      toast.error(t('primaryUpdateFailed'))
+      toast.error('อัปเดตรูปหลักล้มเหลว')
     }
   }
 
@@ -234,7 +231,7 @@ export function ProductForm({ categories, initialData }: Props) {
             .eq('id', existingImages[0].id)
         }
 
-        toast.success(t('productUpdated'))
+        toast.success('อัปเดตสินค้าแล้ว!')
       } else {
         const { data: product, error } = await supabase
           .from('products')
@@ -253,14 +250,14 @@ export function ProductForm({ categories, initialData }: Props) {
           })
         }
 
-        toast.success(t('productCreated'))
+        toast.success('สร้างสินค้าแล้ว!')
       }
 
       router.push('/admin/products')
       router.refresh()
     } catch (err) {
       console.error(err)
-      toast.error(t('error'))
+      toast.error('เกิดข้อผิดพลาด')
     } finally {
       setLoading(false)
     }
@@ -270,23 +267,23 @@ export function ProductForm({ categories, initialData }: Props) {
     <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t('basicInfo')}</CardTitle>
+          <CardTitle>ข้อมูลพื้นฐาน</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="category_id">{t('category')}</Label>
+            <Label htmlFor="category_id">หมวดหมู่</Label>
             <Select
               value={form.category_id}
               onValueChange={(v) => setForm({ ...form, category_id: v })}
             >
               <SelectTrigger>
-                <SelectValue placeholder={t('selectCategory')} />
+                <SelectValue placeholder="เลือกหมวดหมู่" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">{t('noCategory')}</SelectItem>
+                <SelectItem value="none">ไม่มีหมวดหมู่</SelectItem>
                 {categories.map((c) => (
                   <SelectItem key={c.id} value={c.id.toString()}>
-                    {locale === 'th' ? (c.name_th || c.name_en) : c.name_en}
+                    {c.name_th}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -295,7 +292,7 @@ export function ProductForm({ categories, initialData }: Props) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name_th">{t('nameThai')} <span className="text-destructive">*</span></Label>
+              <Label htmlFor="name_th">ชื่อ (ภาษาไทย) * <span className="text-destructive"></span></Label>
               <Input
                 id="name_th"
                 value={form.name_th}
@@ -305,7 +302,7 @@ export function ProductForm({ categories, initialData }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="name_en">{t('nameEn')} <span className="text-destructive">*</span></Label>
+              <Label htmlFor="name_en">ชื่อ (ภาษาอังกฤษ) * <span className="text-destructive"></span></Label>
               <Input
                 id="name_en"
                 value={form.name_en}
@@ -317,7 +314,7 @@ export function ProductForm({ categories, initialData }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="slug">{t('slug')} <span className="text-destructive">*</span></Label>
+            <Label htmlFor="slug">Slug * <span className="text-destructive"></span></Label>
             <Input
               id="slug"
               value={form.slug}
@@ -333,7 +330,7 @@ export function ProductForm({ categories, initialData }: Props) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="description_th">{t('descThai')}</Label>
+              <Label htmlFor="description_th">คำอธิบาย (ภาษาไทย)</Label>
               <Textarea
                 id="description_th"
                 value={form.description_th}
@@ -345,7 +342,7 @@ export function ProductForm({ categories, initialData }: Props) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description_en">{t('descEn')}</Label>
+              <Label htmlFor="description_en">คำอธิบาย (ภาษาอังกฤษ)</Label>
               <Textarea
                 id="description_en"
                 value={form.description_en}
@@ -362,20 +359,20 @@ export function ProductForm({ categories, initialData }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('pricing')}</CardTitle>
+          <CardTitle>ราคา</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-             <Label htmlFor="price">{t('purchasePrice')} <span className="text-destructive">*</span></Label>
+             <Label htmlFor="price">ราคาซื้อ (฿) * <span className="text-destructive"></span></Label>
              <Input
-               id="price"
-               type="number"
-               step="0.01"
-               min="0"
-               value={form.price}
-               onChange={(e) => setForm({ ...form, price: e.target.value })}
-               placeholder="0.00"
-               required
+                id="price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.price}
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
+                placeholder="0.00"
+                required
              />
           </div>
         </CardContent>
@@ -383,11 +380,11 @@ export function ProductForm({ categories, initialData }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('inventory')}</CardTitle>
+          <CardTitle>สต็อกสินค้า</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <Label htmlFor="stock_qty">{t('stockPurchase')} <span className="text-destructive">*</span></Label>
+            <Label htmlFor="stock_qty">สต็อก (ขาย) * <span className="text-destructive"></span></Label>
             <Input
               id="stock_qty"
               type="number"
@@ -407,7 +404,7 @@ export function ProductForm({ categories, initialData }: Props) {
               }
             />
             <Label htmlFor="is_active" className="cursor-pointer">
-              {t('isActive')}
+              สินค้าพร้อมขาย (แสดงต่อลูกค้า)
             </Label>
           </div>
 
@@ -420,7 +417,7 @@ export function ProductForm({ categories, initialData }: Props) {
               }
             />
             <Label htmlFor="is_bookable" className="cursor-pointer">
-              {t('isBookable')}
+              เปิดให้จองนัดหมาย
             </Label>
           </div>
         </CardContent>
@@ -428,7 +425,7 @@ export function ProductForm({ categories, initialData }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('images')}</CardTitle>
+          <CardTitle>รูปภาพ</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -437,7 +434,7 @@ export function ProductForm({ categories, initialData }: Props) {
               className="flex items-center gap-2 px-4 py-2 rounded-md border border-input bg-background text-sm font-medium cursor-pointer hover:bg-accent transition-colors"
             >
               <Upload size={16} />
-              {t('uploadImage')}
+              อัปโหลดรูป
             </Label>
             <Input
               id="image-upload"
@@ -448,7 +445,7 @@ export function ProductForm({ categories, initialData }: Props) {
               disabled={uploading}
             />
             {uploading && (
-              <span className="text-sm text-muted-foreground">{t('uploading')}</span>
+              <span className="text-sm text-muted-foreground">กำลังอัปโหลด...</span>
             )}
           </div>
 
@@ -459,7 +456,6 @@ export function ProductForm({ categories, initialData }: Props) {
                   key={img.id}
                   className="relative group aspect-square rounded-md border bg-muted overflow-hidden"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={img.url}
                     alt=""
@@ -476,7 +472,7 @@ export function ProductForm({ categories, initialData }: Props) {
                           ? 'bg-yellow-500 text-white hover:bg-yellow-600 hover:text-white'
                           : 'bg-white/80 text-muted-foreground hover:bg-white hover:text-muted-foreground'
                       }`}
-                      title={t('setPrimary')}
+                      title="ตั้งเป็นรูปหลัก"
                     >
                       <Star size={14} fill={img.is_primary ? 'currentColor' : 'none'} />
                     </Button>
@@ -486,14 +482,14 @@ export function ProductForm({ categories, initialData }: Props) {
                       size="icon"
                       onClick={() => handleDeleteImage(img.id)}
                       className="h-8 w-8 rounded-full bg-red-500 text-white hover:bg-red-600 hover:text-white"
-                      title={t('deleteImage')}
+                      title="ลบรูป"
                     >
                       <Trash2 size={14} />
                     </Button>
                   </div>
                   {img.is_primary && (
                     <div className="absolute top-1 left-1 bg-yellow-500 text-white text-[10px] px-1.5 py-0.5 rounded font-medium">
-                      {t('primary')}
+                      รูปหลัก
                     </div>
                   )}
                 </div>
@@ -506,10 +502,10 @@ export function ProductForm({ categories, initialData }: Props) {
       <div className="flex flex-col sm:flex-row items-center gap-3 pb-8">
         <Button type="submit" disabled={loading} className="w-full sm:w-auto">
           {loading
-            ? t('saving')
+            ? 'กำลังบันทึก...'
             : isEditing
-              ? t('updateProduct')
-              : t('createProduct')}
+              ? 'อัปเดตสินค้า'
+              : 'สร้างสินค้า'}
         </Button>
         <Button
           type="button"
@@ -517,7 +513,7 @@ export function ProductForm({ categories, initialData }: Props) {
           onClick={() => router.push('/admin/products')}
           className="w-full sm:w-auto"
         >
-          {t('cancel')}
+          ยกเลิก
         </Button>
       </div>
     </form>
