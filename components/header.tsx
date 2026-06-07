@@ -8,16 +8,6 @@ import { CartButton } from "./cart-button";
 import { NotificationBell } from "./notification-bell";
 import { NavLinks } from "./nav-links";
 
-function RingsIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-      <circle cx="9.5" cy="13" r="5.5" />
-      <circle cx="14.5" cy="13" r="5.5" />
-      <path d="M9.5 7.5L11 3h-3l1.5 4.5" />
-      <path d="M14.5 7.5L13 3h3l-1.5 4.5" />
-    </svg>
-  );
-}
 
 function AuthSection() {
   return <AuthButton />;
@@ -40,7 +30,6 @@ export async function Header() {
               href="/"
               className="flex items-center gap-2 text-xl font-bold hover:text-primary transition-colors truncate shrink-0 max-w-[160px] sm:max-w-none"
             >
-              <RingsIcon className="w-6 h-6 text-primary" />
               <span>{storeName}</span>
             </Link>
 

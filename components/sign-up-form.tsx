@@ -34,7 +34,7 @@ export function SignUpForm({
     setError(null);
 
     if (password !== repeatPassword) {
-      setError("Passwords do not match");
+      setError("รหัสผ่านไม่ตรงกัน");
       setIsLoading(false);
       return;
     }
@@ -79,18 +79,18 @@ export function SignUpForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Sign up</CardTitle>
-          <CardDescription>Create a new account</CardDescription>
+          <CardTitle className="text-2xl">สมัครสมาชิก</CardTitle>
+          <CardDescription>สร้างบัญชีใหม่</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignUp}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
-                <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
+                <Label htmlFor="email">อีเมล <span className="text-destructive">*</span></Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="you@example.com"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -98,7 +98,7 @@ export function SignUpForm({
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
-                  <Label htmlFor="password">Password <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="password">รหัสผ่าน <span className="text-destructive">*</span></Label>
                 </div>
                 <Input
                   id="password"
@@ -110,7 +110,7 @@ export function SignUpForm({
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
-                  <Label htmlFor="repeat-password">Repeat Password <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="repeat-password">ยืนยันรหัสผ่าน <span className="text-destructive">*</span></Label>
                 </div>
                 <Input
                   id="repeat-password"
@@ -122,7 +122,7 @@ export function SignUpForm({
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creating an account..." : "Sign up"}
+                {isLoading ? "กำลังสร้างบัญชี..." : "สมัครสมาชิก"}
               </Button>
             </div>
           </form>
@@ -133,7 +133,7 @@ export function SignUpForm({
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-2 text-muted-foreground">
-                Or continue with
+                หรือดำเนินการต่อด้วย
               </span>
             </div>
           </div>
@@ -167,9 +167,9 @@ export function SignUpForm({
           </Button>
 
           <div className="mt-4 text-center text-sm">
-            Already have an account?{" "}
+            มีบัญชีอยู่แล้ว?{" "}
             <Link href="/auth/login" className="underline underline-offset-4">
-              Login
+              เข้าสู่ระบบ
             </Link>
           </div>
         </CardContent>

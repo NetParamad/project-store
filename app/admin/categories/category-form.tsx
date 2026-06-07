@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Upload, Trash2 } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -33,6 +34,8 @@ export function CategoryForm({ categories, initialData }: Props) {
   const isEditing = !!initialData
   const slugEdited = useRef(false)
   const [loading, setLoading] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [imageUrl, setImageUrl] = useState<string | null>(initialData?.image_url ?? null)
 
   const [form, setForm] = useState(() => initialData
     ? {
@@ -65,6 +68,37 @@ export function CategoryForm({ categories, initialData }: Props) {
     }))
   }
 
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingImage(true)
+    try {
+      const supabase = createClient()
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+      const filePath = `category/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('category-images')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      const { data: urlData } = supabase.storage
+        .from('category-images')
+        .getPublicUrl(filePath)
+
+      setImageUrl(urlData.publicUrl)
+      toast.success('อัปโหลดรูปภาพสำเร็จ!')
+    } catch (err) {
+      console.error(err)
+      toast.error('อัปโหลดล้มเหลว')
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
@@ -75,6 +109,7 @@ export function CategoryForm({ categories, initialData }: Props) {
         name: form.name,
         slug: form.slug,
         description: form.description || null,
+        image_url: imageUrl,
         parent_id: form.parent_id && form.parent_id !== 'none' ? parseInt(form.parent_id) : null,
         sort_order: parseInt(form.sort_order) || 0,
       }
@@ -148,6 +183,48 @@ export function CategoryForm({ categories, initialData }: Props) {
               placeholder="รายละเอียดหมวดหมู่"
               rows={3}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>รูปภาพหมวดหมู่</Label>
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              {imageUrl && (
+                <div className="relative h-20 w-20 shrink-0 rounded-md border bg-muted overflow-hidden">
+                  <img
+                    src={imageUrl}
+                    alt="รูปหมวดหมู่"
+                    className="h-full w-full object-cover"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setImageUrl(null)}
+                    className="absolute top-0.5 right-0.5 h-5 w-5 rounded-full bg-red-500 text-white hover:bg-red-600 hover:text-white"
+                  >
+                    <Trash2 size={12} />
+                  </Button>
+                </div>
+              )}
+              <Label
+                htmlFor="category-image-upload"
+                className="flex items-center gap-2 px-4 py-2 rounded-md border border-input bg-background text-sm font-medium cursor-pointer hover:bg-accent transition-colors"
+              >
+                <Upload size={16} />
+                {imageUrl ? 'เปลี่ยนรูป' : 'อัปโหลดรูป'}
+              </Label>
+              <Input
+                id="category-image-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+                disabled={uploadingImage}
+              />
+              {uploadingImage && (
+                <span className="text-sm text-muted-foreground">กำลังอัปโหลด...</span>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">

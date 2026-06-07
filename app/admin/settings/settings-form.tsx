@@ -297,27 +297,23 @@ export function SettingsForm({ initialData }: Props) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="email">อีเมล <span className="text-destructive">*</span></Label>
+              <Label htmlFor="email">อีเมล</Label>
               <Input
                 id="email"
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 placeholder="contact@mystore.com"
-                required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">เบอร์โทรศัพท์ <span className="text-destructive">*</span></Label>
+              <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
               <Input
                 id="phone"
                 type="tel"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 placeholder="+66 12 345 6789"
-                required
-                pattern="[0-9]{10}"
-                title="กรุณากรอกเบอร์โทร 10 หลัก"
               />
             </div>
             <div className="space-y-2">

@@ -121,3 +121,39 @@ CREATE POLICY "Admins can delete store assets"
     bucket_id = 'store-assets'
     AND public.is_admin()
   );
+
+-- ============================================================
+-- BUCKET 4: Category images
+-- ============================================================
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('category-images', 'category-images', true)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "Public can view category images" ON storage.objects;
+CREATE POLICY "Public can view category images"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'category-images');
+
+DROP POLICY IF EXISTS "Admins can upload category images" ON storage.objects;
+CREATE POLICY "Admins can upload category images"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'category-images'
+    AND public.is_admin()
+  );
+
+DROP POLICY IF EXISTS "Admins can update category images" ON storage.objects;
+CREATE POLICY "Admins can update category images"
+  ON storage.objects FOR UPDATE
+  USING (
+    bucket_id = 'category-images'
+    AND public.is_admin()
+  );
+
+DROP POLICY IF EXISTS "Admins can delete category images" ON storage.objects;
+CREATE POLICY "Admins can delete category images"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'category-images'
+    AND public.is_admin()
+  );

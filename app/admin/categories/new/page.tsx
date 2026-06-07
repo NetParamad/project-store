@@ -9,9 +9,9 @@ export default async function NewCategoryPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">New Category</h1>
+        <h1 className="text-3xl font-bold">หมวดหมู่ใหม่</h1>
         <p className="text-muted-foreground mt-1">
-          Create a new product category
+          สร้างหมวดหมู่สินค้าใหม่
         </p>
       </div>
       <CategoryForm categories={categories} />

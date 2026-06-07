@@ -6,16 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Marquee } from "@/components/marquee";
 
-function RingsIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-      <circle cx="9.5" cy="13" r="5.5" />
-      <circle cx="14.5" cy="13" r="5.5" />
-      <path d="M9.5 7.5L11 3h-3l1.5 4.5" />
-      <path d="M14.5 7.5L13 3h3l-1.5 4.5" />
-    </svg>
-  );
-}
+
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -24,21 +15,43 @@ export default async function HomePage() {
     getCategories(supabase),
   ]);
 
-  const features = [1, 2, 3, 4, 5, 6];
+  const servicesImages = [
+    '/services/wd_sv_1.jpg',
+    '/services/wd_sv_2.jpg',
+    '/services/wd_sv_3.jpg',
+  ];
+
+
+  const galleryImages = [
+    '/gallery/wd_gal_1.jpg',
+    '/gallery/wd_gal_2.jpg',
+    '/gallery/wd_gal_3.jpg',
+    '/gallery/wd_gal_4.jpg',
+    '/gallery/wd_gal_5.jpg',
+    '/gallery/wd_gal_6.jpg',
+  ]
 
   const testimonials = [
-    { text: "ชุดสวยมาก! รู้สึกเหมือนเจ้าหญิงในวันแต่งงาน", author: "— สาระ & เจมส์" },
-    { text: "ขนาดพอดีตัวและคุณภาพเยี่ยม คำแนะนำเรื่องการแต่งตัวมีค่ามาก", author: "— ไมเคิล & ปรียา" },
-    { text: "ตั้งแต่ลองครั้งแรกจนถึงชุดสำเร็จ ทุกอย่างสมบูรณ์แบบ", author: "— เอมิลี่ & เดวิด" },
+    { text: "รูปออกมาสวยทุกรูปเลยค่ะ ต้องขอบคุณพี่บาสและพี่เล็ก ที่คอยดูแลอย่างดีตอนถ่ายพรี ทั้งจัดเต็มเรื่องแต่งหน้า ทำผม รวมถึงชุดล้านนาที่งด งามมากๆ ทุกอย่างลงตัวจน ทำให้การถ่ายครั้งนี้เป็น ประสบการณ์ที่น่าประทับใจ และอบอุ่นจริงๆค่ะ", author: "— สาระ & เจมส์", initial: "ส" },
+    { text: "ขอบคุณเหมือนกันค่ะ พี่บาสกับพี่เล็กน่ารักมากๆ ไม่ เป็นไรเลยค่ะพี่ ชุดสวยมากกก หน้าผมสวยหมดดด พี่ช่วยคิด ท่าโพสต์ให้ด้วยเริสมากกเลย ค่ะ", author: "— ไมเคิล & ปรียา", initial: "ม" },
+    { text: "ชุดล้านนา โทนพาสเทลด้วยความที่ตรีมงานแต่งเป็นโทนพาสเทล กับสถานที่ เรือนไทยทางภาคเหนือ บวกกับเจ้าสาวอยากได้ชุดล้าน นาที่เข้ากับธีมงาน และก็ได้ถูกใจชุดล้านนาจาก ร้าน ซิน ณ กร จ. ลำปาง ซึ่งตรงตามตรีมงานมากพี่ๆจากร้าน ชิน ณ กร ดูแลดี ให้บริการดี ทั้งแต่งหน้า ทำผม และแต่งตัว (ชุดเป็นชุดนุ่งสด) ตั้งแต่วันฟิตติ้ง จนถึงวันงานเลยค่ะวันงานจริง พอแต่งหน้าทำผม แล้วสวย ถูกใจมากๆ แขก ในงานชมตลอดงาน ถ่ายรูปออกมาสวยเกินคาดมากๆ ค่ะเผื่อเป็นไอเดียให้เจ้าสาว ที่ชอบสไตล์ล้านนา นะคะ งานแต่งล้านนา ชุดล้านนา", author: "— เอมิลี่ & เดวิด", initial: "อ" },
+    { text: "ขอบคุณพี่บาส พี่เล็กแบบ มากๆๆๆๆๆๆๆๆๆเลยนะคะ แบบไม่เสียใจเลยจริงๆที่ให้ พี่ๆดูแล งานประณีตมากๆๆ ดูแลอย่างดี ประทับใจมากๆ เลยค่ะ ขอบคุณอีกครั้งจริงๆ นะคะ", author: "— เอมิลี่ & เดวิด", initial: "อ" },
+    { text: "รักชินกร เป็นมากกว่าร้าน คือการดูแลที่โคตรจะดี พี่บาส พี่เล็ก น่ารัก เป็นกันเองที่สุด เลยค่ะ ขอบคุณพี่ๆ อีกครั้งนะคะ", author: "— เอมิลี่ & เดวิด", initial: "อ" },
+    { text: "ขอบคุณพี่บาส พี่เล็ก พี่ไก่ มากๆนะคะ ที่ทำให้วันสำคัญของน้องสองคน สวยงามและสมบูรณ์แบบทุกอย่างออกมาดีและดูแล มากกว่าการเป็นร้านเช่า ชุดเลย", author: "— เอมิลี่ & เดวิด", initial: "อ" },
+    { text: "ขอบคุณ พี่เล็ก พี่บาส นะคะแขกชมสวยมากกๆ ทั้งที่ งาน ทั้งในโซเซียล เค้า บอกว่าชุดไทย หน้าผมเจ้าสาว สวยมากๆ และ ขอบคุณที่ดูแลเรา 2 คน ตลอดงานนะคะ", author: "— เอมิลี่ & เดวิด", initial: "อ" },
+    { text: "งานละเมียดละมัย แต่งหน้าสวย ชุดสวย ดูแลดี แนะน่าร้าน ชิน ณ กร เลยค่ะ ไม่ผิดหวัง ประทับใจมาก ขอบคุณพี่เล็ก พี่บาส นะคะ", author: "— เอมิลี่ & เดวิด", initial: "อ" },
+    { text: "พี่ทั้ง 2 เป็นพี่ที่น่ารักมากๆ ใส่ใจทุกรายละเอียดที่เกี่ยวกับเรา ปราณีต ทุกตรงคอยดูแลทั้งหน้าผม ชุด ตลอดงาน ไม่หยุดเลย จนเราเองแอบเกรงใจกลัวพี่ๆ จะเหนื่อยจะบอกว่า เลือกไม่ผิดจริงๆ กับการดูแลของทางชิน ณ กร ที่มอบให้เราในวันงาน ใครที่ยังลังเล เลือกเถอะ ค่ะ แล้วจะไม่ผิดหวังที่ได้เลือก ชิน ณ กร", author: "— เอมิลี่ & เดวิด", initial: "อ" },
+    { text: "What a great experience! Did everything from consulting on style, full dress up, makeup and photography. Very friendly and welcoming as well, highly recommend.", author: "— เอมิลี่ & เดวิด", initial: "อ" },
+    { text: "ร้าน Pre wedding ใกล้วัดป่าตัน อำเภอแม่ทะ เป็นร้านเล็กๆน่ารัก พี่ๆใส่ใจทุกรายละเอียด เสื้อผ้าสวยๆ หรือจะให้ถ่ายรูปเลยก็ได้นะครับ รอบหมู่บ้านมีสถานที่สวยให้เลือกเยอะ เช่น ริมน้ำ ภูเขา วิวใต้ต้นไม้", author: "— เอมิลี่ & เดวิด", initial: "อ" },
+    { text: "ช่างมืออาชีพ มากประสบการณ์ ชุดไทยมีรายละเอียดที่พิถีทันมาก แตกต่างจากเจ้าอื่นอย่างสิ้นเชิง คุณผู้หญิงที่ชื่นชอบในผ้าไทยลองมาสัมผัสด้วยตัวเองจะเห็นความแตกต่างในรายละเอียดอย่างแน่นอน", author: "— เอมิลี่ & เดวิด", initial: "อ" },
+    { text: "คิดถูกมากที่เลือก ชิน ณ กร ให้จัดการเรื่องชุดแต่งงาน และแต่งหน้า ทำผม ไม่ผิดหวังเลยค่ะ :-)", author: "— เอมิลี่ & เดวิด", initial: "อ" },
   ];
 
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-b from-primary/10 via-primary/[0.03] to-background py-20 lg:py-32">
-        <div className="absolute inset-0 bg-[url('https://picsum.photos/seed/wedding/1600/900')] bg-cover bg-center opacity-[0.06]" />
-        <RingsIcon className="absolute top-8 right-8 w-16 h-16 text-primary/10 rotate-12 hidden sm:block" />
-        <RingsIcon className="absolute bottom-8 left-8 w-12 h-12 text-primary/10 -rotate-12 hidden sm:block" />
+        <div className="absolute inset-0 bg-[url('/wallpaper/store.jpg')] bg-cover bg-center opacity-[0.06]" />
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
           <p className="text-primary font-medium tracking-[0.1em] uppercase text-sm">
             ร้านเวดดิ้งเล็กๆ ที่เน้นคุณภาพ
@@ -64,11 +77,11 @@ export default async function HomePage() {
       <section className="py-16 lg:py-24">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           <Marquee>
-            {[...features, ...features].map((img, i) => (
+            {[...servicesImages, ...servicesImages].map((img, i) => (
               <div key={i} className="shrink-0 w-[320px] sm:w-[400px] overflow-hidden rounded-lg shadow-sm">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={`https://picsum.photos/seed/wedding-${img}/600/400`}
+                  src={img}
                   alt=""
                   className="h-full w-full object-cover aspect-[4/3]"
                 />
@@ -95,7 +108,7 @@ export default async function HomePage() {
                     <div className="aspect-[3/2] bg-muted overflow-hidden">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={`https://picsum.photos/seed/category-${cat.id}/400/300`}
+                        src={cat.image_url || `https://picsum.photos/seed/category-${cat.id}/400/300`}
                         alt=""
                         className="h-full w-full object-cover hover:scale-105 transition-transform duration-500"
                       />
@@ -145,12 +158,9 @@ export default async function HomePage() {
               <Card key={idx} className="shrink-0 w-[320px] sm:w-[400px] border-0 shadow-sm">
                 <CardContent className="p-6 text-center space-y-4">
                   <div className="w-16 h-16 rounded-full overflow-hidden mx-auto ring-2 ring-primary/20">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={`https://picsum.photos/seed/wedding-testimonial-${(idx % testimonials.length) + 1}/200/200`}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto ring-2 ring-primary/20">
+                    <span className="text-xl font-bold text-primary">{item.initial}</span>
+                  </div>
                   </div>
                   <p className="text-sm text-muted-foreground italic leading-relaxed">
                     &ldquo;{item.text}&rdquo;
@@ -170,11 +180,11 @@ export default async function HomePage() {
             <p className="text-primary font-medium tracking-[0.1em] uppercase text-sm">แรงบันดาลใจสำหรับวันวิวาห์</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((n) => (
-              <div key={n} className="aspect-square rounded-lg overflow-hidden bg-muted">
+            {galleryImages.map((img, i) => (
+              <div key={i} className="aspect-square rounded-lg overflow-hidden bg-muted">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={`https://picsum.photos/seed/wedding-gallery-${n}/400/400`}
+                  src={img}
                   alt=""
                   className="h-full w-full object-cover hover:scale-105 transition-transform duration-500"
                 />

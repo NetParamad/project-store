@@ -13,6 +13,7 @@ export interface Category {
   name: string
   slug: string
   description: string | null
+  image_url: string | null
   parent_id: number | null
   sort_order: number
   created_at: string
@@ -58,6 +59,7 @@ export type CategoryFormData = {
   name: string
   slug: string
   description: string
+  image_url: string
   parent_id: string
   sort_order: string
 }
