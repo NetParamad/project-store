@@ -727,7 +727,7 @@ export async function getDashboardStats(client: SupabaseClient) {
   })
 
   const topProducts = Object.entries(productSales)
-    .map(([name, data]) => ({ name, ...data }))
+    .map(([, data]) => data)
     .sort((a, b) => b.qty - a.qty)
     .slice(0, 10)
 
