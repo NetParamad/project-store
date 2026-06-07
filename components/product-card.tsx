@@ -36,11 +36,16 @@ export async function ProductCard({ product }: Props) {
           </div>
         )}
         <div className="absolute top-2 left-2 flex gap-1">
-          {isOutOfStock ? (
+          {product.product_type !== 'book' && isOutOfStock ? (
             <Badge variant="destructive" className="text-xs">สินค้าหมด</Badge>
           ) : (
             <>
-              {hasPurchase && <Badge variant="secondary" className="text-xs">ซื้อ</Badge>}
+              {(product.product_type === 'buy' || product.product_type === 'both') && hasPurchase && (
+                <Badge variant="secondary" className="text-xs">ซื้อ</Badge>
+              )}
+              {(product.product_type === 'book' || product.product_type === 'both') && (
+                <Badge variant="outline" className="border-blue-300 text-blue-700 text-xs border">จอง</Badge>
+              )}
             </>
           )}
         </div>

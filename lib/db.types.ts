@@ -29,7 +29,7 @@ export interface Product {
   price: number
   stock_qty: number
   is_active: boolean
-  is_bookable: boolean
+  product_type: 'buy' | 'book' | 'both'
   created_at: string
   updated_at: string
   images?: ProductImage[]
@@ -52,7 +52,7 @@ export type ProductFormData = {
   price: string
   stock_qty: string
   is_active: boolean
-  is_bookable: boolean
+  product_type: string
 }
 
 export type CategoryFormData = {

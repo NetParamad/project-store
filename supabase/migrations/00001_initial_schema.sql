@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   price DECIMAL(10,2) NOT NULL DEFAULT 0,
   stock_qty INTEGER NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT true,
-  is_bookable BOOLEAN NOT NULL DEFAULT false,
+  product_type TEXT NOT NULL DEFAULT 'buy' CHECK (product_type IN ('buy', 'book', 'both')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

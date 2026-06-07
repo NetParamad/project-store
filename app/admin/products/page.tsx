@@ -39,7 +39,7 @@ export default async function ProductsPage() {
               <TableHead className="px-4 py-3 font-medium">ราคา</TableHead>
               <TableHead className="px-4 py-3 font-medium">สต็อก</TableHead>
               <TableHead className="px-4 py-3 font-medium">สถานะ</TableHead>
-              <TableHead className="px-4 py-3 font-medium">จองได้</TableHead>
+              <TableHead className="px-4 py-3 font-medium">ประเภท</TableHead>
               <TableHead className="px-4 py-3 text-right font-medium">จัดการ</TableHead>
             </TableRow>
           </TableHeader>
@@ -97,10 +97,12 @@ export default async function ProductsPage() {
                     )}
                   </TableCell>
                   <TableCell className="px-4 py-3">
-                    {product.is_bookable ? (
-                      <Badge variant="outline" className="border-blue-300 text-blue-700">ใช่</Badge>
+                    {product.product_type === 'book' ? (
+                      <Badge variant="outline" className="border-blue-300 text-blue-700">จอง</Badge>
+                    ) : product.product_type === 'both' ? (
+                      <Badge variant="outline" className="border-green-300 text-green-700">ซื้อ+จอง</Badge>
                     ) : (
-                      <Badge variant="secondary">ไม่</Badge>
+                      <Badge variant="secondary">ซื้อ</Badge>
                     )}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-right">

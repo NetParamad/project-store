@@ -164,7 +164,7 @@ export async function createProduct(
     price?: number
     stock_qty?: number
     is_active?: boolean
-    is_bookable?: boolean
+    product_type?: 'buy' | 'book' | 'both'
   }
 ) {
   const { data, error } = await client
@@ -177,7 +177,7 @@ export async function createProduct(
       price: input.price ?? 0,
       stock_qty: input.stock_qty ?? 0,
       is_active: input.is_active ?? true,
-      is_bookable: input.is_bookable ?? false,
+      product_type: input.product_type ?? 'buy',
     })
     .select()
     .single()
@@ -197,7 +197,7 @@ export async function updateProduct(
     price?: number
     stock_qty?: number
     is_active?: boolean
-    is_bookable?: boolean
+    product_type?: 'buy' | 'book' | 'both'
   }
 ) {
   const { data, error } = await client
@@ -462,7 +462,7 @@ export async function getBookableProducts(client: SupabaseClient) {
     .from('products')
     .select('*, images:product_images(*)')
     .eq('is_active', true)
-    .eq('is_bookable', true)
+    .in('product_type', ['book', 'both'])
     .order('created_at', { ascending: false })
 
   return (data ?? []) as (Product & { images: ProductImage[] })[]

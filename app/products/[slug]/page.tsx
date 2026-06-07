@@ -21,8 +21,10 @@ export default async function ProductDetailPage({
 
   const images = product.images ?? []
 
-  const hasPurchase = Number(product.price) > 0 && Number(product.stock_qty) > 0
-  const isOutOfStock = Number(product.stock_qty) <= 0
+  const canPurchase = product.product_type !== 'book'
+  const canBook = product.product_type !== 'buy'
+  const hasPurchase = canPurchase && Number(product.price) > 0 && Number(product.stock_qty) > 0
+  const isOutOfStock = canPurchase && Number(product.stock_qty) <= 0
   const productName = product.name
 
   return (
@@ -46,16 +48,16 @@ export default async function ProductDetailPage({
 
           {/* Pricing */}
           <div className="space-y-3">
-            {hasPurchase && (
+            {product.product_type !== 'book' && (
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-bold">
-                  ฿{Number(product.price).toLocaleString()}
+                  {hasPurchase ? `฿${Number(product.price).toLocaleString()}` : 'ติดต่อสอบถาม'}
                 </span>
                 <span className="text-sm text-muted-foreground">ซื้อ</span>
               </div>
             )}
 
-            {!isOutOfStock && product.is_bookable && (
+            {product.product_type !== 'buy' && (
               <Button asChild variant="outline" className="w-full">
                 <Link href={`/appointments/book?product=${product.slug}`}>
                   จองลองชุด
@@ -64,15 +66,17 @@ export default async function ProductDetailPage({
             )}
           </div>
 
-          {isOutOfStock ? (
-            <Badge variant="destructive" className="bg-destructive/10 text-destructive hover:bg-destructive/10 text-sm px-3 py-1">
-              สินค้าหมด
-            </Badge>
-          ) : hasPurchase ? (
-            <span className="text-sm text-muted-foreground">
-              สต็อก: {product.stock_qty}
-            </span>
-          ) : null}
+          {product.product_type !== 'book' && (
+            isOutOfStock ? (
+              <Badge variant="destructive" className="bg-destructive/10 text-destructive hover:bg-destructive/10 text-sm px-3 py-1">
+                สินค้าหมด
+              </Badge>
+            ) : hasPurchase ? (
+              <span className="text-sm text-muted-foreground">
+                สต็อก: {product.stock_qty}
+              </span>
+            ) : null
+          )}
 
           {/* Description */}
           {product.description && (
@@ -84,7 +88,7 @@ export default async function ProductDetailPage({
             </div>
           )}
 
-          {hasPurchase && (
+          {canPurchase && hasPurchase && (
             <AddToCartButton
               product={product}
               outOfStock={isOutOfStock}

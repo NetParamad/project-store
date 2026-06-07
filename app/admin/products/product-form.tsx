@@ -47,7 +47,7 @@ export function ProductForm({ categories, initialData }: Props) {
         price: initialData.price.toString(),
         stock_qty: initialData.stock_qty.toString(),
         is_active: initialData.is_active,
-        is_bookable: initialData.is_bookable,
+        product_type: initialData.product_type,
       }
     : {
         category_id: 'none',
@@ -57,7 +57,7 @@ export function ProductForm({ categories, initialData }: Props) {
         price: '',
         stock_qty: '0',
         is_active: true,
-        is_bookable: false,
+        product_type: 'buy',
       })
 
   function generateSlug(text: string) {
@@ -195,7 +195,7 @@ export function ProductForm({ categories, initialData }: Props) {
         price: parseFloat(form.price) || 0,
         stock_qty: parseInt(form.stock_qty) || 0,
         is_active: form.is_active,
-        is_bookable: form.is_bookable,
+        product_type: form.product_type,
       }
 
       if (isEditing && initialData) {
@@ -376,17 +376,23 @@ export function ProductForm({ categories, initialData }: Props) {
             </Label>
           </div>
 
-          <div className="flex items-center gap-2 mt-4">
-            <Checkbox
-              id="is_bookable"
-              checked={form.is_bookable}
-              onCheckedChange={(checked) =>
-                setForm({ ...form, is_bookable: checked === true })
+          <div className="mt-4 space-y-2">
+            <Label>ประเภทสินค้า</Label>
+            <Select
+              value={form.product_type}
+              onValueChange={(value) =>
+                setForm({ ...form, product_type: value as 'buy' | 'book' | 'both' })
               }
-            />
-            <Label htmlFor="is_bookable" className="cursor-pointer">
-              เปิดให้จองนัดหมาย
-            </Label>
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="เลือกประเภทสินค้า" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="buy">ซื้อ</SelectItem>
+                <SelectItem value="book">จอง</SelectItem>
+                <SelectItem value="both">ทั้งซื้อและจอง</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
