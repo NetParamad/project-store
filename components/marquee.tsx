@@ -3,31 +3,34 @@
 import { useRef, useEffect, type ReactNode } from "react";
 
 export function Marquee({ children, speed = 1 }: { children: ReactNode; speed?: number }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const outerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
 
     let raf: number;
     let isPaused = false;
+    let x = 0;
 
     const pause = () => { isPaused = true; };
     const resume = () => { isPaused = false; };
 
-    el.addEventListener("mouseenter", pause);
-    el.addEventListener("mouseleave", resume);
-    el.addEventListener("touchstart", pause);
-    el.addEventListener("touchend", resume);
+    outer.addEventListener("mouseenter", pause);
+    outer.addEventListener("mouseleave", resume);
+    outer.addEventListener("touchstart", pause);
+    outer.addEventListener("touchend", resume);
 
     let last = performance.now();
     function tick(now: number) {
-      if (!el) return;
-      if (!isPaused && el.scrollLeft >= el.scrollWidth / 2) {
-        el.scrollLeft = 0;
-      }
+      if (!inner) return;
       if (!isPaused) {
-        el.scrollLeft += (now - last) * 0.05 * speed;
+        x += (now - last) * 0.05 * speed;
+        const half = inner.scrollWidth / 2;
+        if (x >= half) x = 0;
+        inner.style.transform = `translateX(${-x}px)`;
       }
       last = now;
       raf = requestAnimationFrame(tick);
@@ -36,16 +39,16 @@ export function Marquee({ children, speed = 1 }: { children: ReactNode; speed?: 
 
     return () => {
       cancelAnimationFrame(raf);
-      el.removeEventListener("mouseenter", pause);
-      el.removeEventListener("mouseleave", resume);
-      el.removeEventListener("touchstart", pause);
-      el.removeEventListener("touchend", resume);
+      outer.removeEventListener("mouseenter", pause);
+      outer.removeEventListener("mouseleave", resume);
+      outer.removeEventListener("touchstart", pause);
+      outer.removeEventListener("touchend", resume);
     };
   }, [speed]);
 
   return (
-    <div ref={ref} className="overflow-x-auto scrollbar-hide">
-      <div className="flex gap-6">
+    <div ref={outerRef} className="overflow-hidden">
+      <div ref={innerRef} className="flex gap-6" style={{ willChange: 'transform' }}>
         {children}
       </div>
     </div>

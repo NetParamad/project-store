@@ -11,7 +11,7 @@ import { CategoryFilter } from './category-filter'
 import { Pagination } from './pagination'
 
 interface Props {
-  searchParams: Promise<{ category?: string; search?: string; page?: string }>
+  searchParams: Promise<{ category?: string; search?: string; page?: string; type?: string }>
 }
 
 async function ProductGrid({ searchParams }: Props) {
@@ -22,12 +22,19 @@ async function ProductGrid({ searchParams }: Props) {
   const categoryId = params.category ? parseInt(params.category) : undefined
   const search = params.search
   const page = params.page ? parseInt(params.page) : 1
+  const type = params.type
+
+  const typeFilter: ('buy' | 'book' | 'both')[] | undefined =
+    type === 'book' ? ['book', 'both']
+    : type === 'buy' ? ['buy', 'both']
+    : undefined
 
   const result = await getActiveProducts(supabase, {
     category_id: isNaN(categoryId ?? 0) ? undefined : categoryId,
     search,
     page: isNaN(page) ? 1 : page,
     pageSize: 12,
+    product_type: typeFilter,
   })
 
   return (
@@ -36,6 +43,7 @@ async function ProductGrid({ searchParams }: Props) {
         <CategoryFilter
           categories={categories}
           selected={categoryId}
+          selectedType={type}
         />
       </aside>
 
@@ -92,6 +100,7 @@ export default async function ProductsPage({ searchParams }: Props) {
         <CategoryFilter
           categories={categories}
           selected={undefined}
+          selectedType={undefined}
           mobile
         />
       </div>

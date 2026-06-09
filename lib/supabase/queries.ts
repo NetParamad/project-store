@@ -423,6 +423,7 @@ export async function getActiveProducts(
     search?: string
     page?: number
     pageSize?: number
+    product_type?: ('buy' | 'book' | 'both')[]
   }
 ) {
   const page = options?.page ?? 1
@@ -438,6 +439,10 @@ export async function getActiveProducts(
 
   if (options?.category_id) {
     query = query.eq('category_id', options.category_id)
+  }
+
+  if (options?.product_type) {
+    query = query.in('product_type', options.product_type)
   }
 
   if (options?.search) {
