@@ -744,11 +744,15 @@ export async function getDashboardStats(client: SupabaseClient) {
 
   const { data: allAppointments } = await client
     .from('appointments')
-    .select('id, created_at')
+    .select('id, created_at, status')
   const totalAppointments = allAppointments?.length ?? 0
   const todayAppointments = allAppointments
     ?.filter((a) => new Date(a.created_at).toDateString() === new Date().toDateString())
     .length ?? 0
+  const appointmentsByStatus: Record<string, number> = {}
+  allAppointments?.forEach((a) => {
+    appointmentsByStatus[a.status] = (appointmentsByStatus[a.status] || 0) + 1
+  })
 
   const { data: bookedProducts } = await client
     .from('appointments')
@@ -779,6 +783,7 @@ export async function getDashboardStats(client: SupabaseClient) {
     recentOrders: (recentOrders ?? []) as (Order & { items: OrderItem[] })[],
     totalAppointments,
     todayAppointments,
+    appointmentsByStatus,
     topBookedProducts,
   }
 }
