@@ -38,6 +38,7 @@ export function SettingsForm({ initialData }: Props) {
   const router = useRouter()
   const { setTheme: applyColorTheme } = useColorTheme()
   const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [uploadingQR, setUploadingQR] = useState(false)
   const [logoUrl, setLogoUrl] = useState<string | null>(initialData?.logo_url ?? null)
@@ -141,6 +142,21 @@ export function SettingsForm({ initialData }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setErrors({})
+
+    const newErrors: Record<string, string> = {}
+    if (form.promptpay_number && form.promptpay_number.replace(/\D/g, '').length !== 10)
+      newErrors.promptpay_number = 'หมายเลขพร้อมเพย์ต้องมี 10 หลัก'
+    if (form.bank_account && form.bank_account.replace(/\D/g, '').length > 12)
+      newErrors.bank_account = 'หมายเลขบัญชีต้องไม่เกิน 12 หลัก'
+    if (form.phone && form.phone.replace(/\D/g, '').length > 10)
+      newErrors.phone = 'เบอร์โทรศัพท์ต้องไม่เกิน 10 หลัก'
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -312,9 +328,15 @@ export function SettingsForm({ initialData }: Props) {
                 id="phone"
                 type="tel"
                 value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                placeholder="+66 12 345 6789"
+                onChange={(e) => {
+                  setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })
+                  if (errors.phone) setErrors((prev) => ({ ...prev, phone: '' }))
+                }}
+                maxLength={10}
+                pattern="[0-9]{1,10}"
+                placeholder="0812345678"
               />
+              {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="map_url">URL แผนที่</Label>
@@ -463,9 +485,15 @@ export function SettingsForm({ initialData }: Props) {
             <Input
               id="promptpay_number"
               value={form.promptpay_number}
-              onChange={(e) => setForm({ ...form, promptpay_number: e.target.value })}
-              placeholder="090-xxx-xxxx or xxxxxxxxxxx"
+              onChange={(e) => {
+                setForm({ ...form, promptpay_number: e.target.value.replace(/\D/g, '').slice(0, 10) })
+                if (errors.promptpay_number) setErrors((prev) => ({ ...prev, promptpay_number: '' }))
+              }}
+              maxLength={10}
+              pattern="[0-9]{10}"
+              placeholder="0812345678"
             />
+            {errors.promptpay_number && <p className="text-sm text-destructive">{errors.promptpay_number}</p>}
           </div>
 
           <div className="space-y-2">
@@ -532,9 +560,15 @@ export function SettingsForm({ initialData }: Props) {
               <Input
                 id="bank_account"
                 value={form.bank_account}
-                onChange={(e) => setForm({ ...form, bank_account: e.target.value })}
-                placeholder="xxx-x-xxxxx-x"
+                onChange={(e) => {
+                  setForm({ ...form, bank_account: e.target.value.replace(/\D/g, '').slice(0, 12) })
+                  if (errors.bank_account) setErrors((prev) => ({ ...prev, bank_account: '' }))
+                }}
+                maxLength={12}
+                pattern="[0-9]{1,12}"
+                placeholder="123456789012"
               />
+              {errors.bank_account && <p className="text-sm text-destructive">{errors.bank_account}</p>}
             </div>
           </div>
           <div className="space-y-2">

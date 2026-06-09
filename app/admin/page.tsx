@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { RevenueChart } from './revenue-chart'
 import { OrdersByStatusChart } from './orders-status-chart'
+import { BookingChart } from './booking-chart'
 
 const statusLabels: Record<string, string> = {
   pending: 'รอการชำระเงิน',
@@ -145,6 +146,10 @@ export default async function AdminDashboard() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <BookingChart data={stats.topBookedProducts} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

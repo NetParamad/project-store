@@ -98,7 +98,7 @@ export async function Footer() {
 
         <div className="border-t mt-8 pt-6 text-center">
           <p className="text-sm text-muted-foreground">
-            &copy; {year} Project Store สงวนลิขสิทธิ์
+            &copy; {year} {settings?.store_name} สงวนลิขสิทธิ์
           </p>
         </div>
       </div>

@@ -85,7 +85,7 @@ export default function ProfilePage() {
           )}
         </div>
         <div>
-          <h1 className="text-2xl font-bold">โปรไฟล์ของฉัน</h1>
+          <h1 className="text-2xl font-bold">{profile.display_name}</h1>
           <p className="text-sm text-muted-foreground">
             สมาชิกตั้งแต่: {new Date(profile.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
           </p>

@@ -750,6 +750,24 @@ export async function getDashboardStats(client: SupabaseClient) {
     ?.filter((a) => new Date(a.created_at).toDateString() === new Date().toDateString())
     .length ?? 0
 
+  const { data: bookedProducts } = await client
+    .from('appointments')
+    .select('product_id, product:products(name)')
+    .not('product_id', 'is', null)
+    .neq('status', 'cancelled')
+
+  const productBookingCounts: Record<string, number> = {}
+  bookedProducts?.forEach((a) => {
+    const p = a.product as { name?: string } | null
+    const name = p?.name ?? `#${a.product_id}`
+    productBookingCounts[name] = (productBookingCounts[name] || 0) + 1
+  })
+
+  const topBookedProducts = Object.entries(productBookingCounts)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10)
+
   return {
     totalOrders,
     totalRevenue,
@@ -761,6 +779,7 @@ export async function getDashboardStats(client: SupabaseClient) {
     recentOrders: (recentOrders ?? []) as (Order & { items: OrderItem[] })[],
     totalAppointments,
     todayAppointments,
+    topBookedProducts,
   }
 }
 
