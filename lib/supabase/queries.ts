@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Category, Order, OrderItem, Product, ProductImage, Profile, StoreSettings, Appointment, AppointmentService } from '@/lib/db.types'
+import type { Category, Product, ProductImage, Profile, StoreSettings, Appointment, AppointmentService, Rental, ProductDateLock } from '@/lib/db.types'
 
 // ─── Profiles ───
 
@@ -23,7 +23,7 @@ export async function getProfile(client: SupabaseClient) {
       .from('profiles')
       .select('*')
       .eq('id', user.id)
-      .single()
+    .maybeSingle()
     if (newData) return newData as Profile | null
   }
 
@@ -164,7 +164,7 @@ export async function createProduct(
     price?: number
     stock_qty?: number
     is_active?: boolean
-    product_type?: 'buy' | 'book' | 'both'
+    product_type?: 'book' | 'rent' | 'both'
   }
 ) {
   const { data, error } = await client
@@ -177,7 +177,7 @@ export async function createProduct(
       price: input.price ?? 0,
       stock_qty: input.stock_qty ?? 0,
       is_active: input.is_active ?? true,
-      product_type: input.product_type ?? 'buy',
+      product_type: input.product_type ?? 'book',
     })
     .select()
     .single()
@@ -197,7 +197,7 @@ export async function updateProduct(
     price?: number
     stock_qty?: number
     is_active?: boolean
-    product_type?: 'buy' | 'book' | 'both'
+    product_type?: 'book' | 'rent' | 'both'
   }
 ) {
   const { data, error } = await client
@@ -354,28 +354,28 @@ export async function getUserAppointments(client: SupabaseClient) {
   const { data: { user } } = await client.auth.getUser()
   const { data } = await client
     .from('appointments')
-    .select('*, service:appointment_services(*), product:products(*)')
+    .select('*, service:appointment_services(*), product:products(*, images:product_images(*))')
     .eq('user_id', user?.id ?? '')
     .order('appointment_date', { ascending: false })
     .order('time_slot', { ascending: false })
 
-  return (data ?? []) as (Appointment & { service: AppointmentService } & { product: Product | null })[]
+  return (data ?? []) as (Appointment & { service: AppointmentService } & { product: (Product & { images: ProductImage[] }) | null })[]
 }
 
 export async function getAppointment(client: SupabaseClient, id: number) {
   const { data } = await client
     .from('appointments')
-    .select('*, service:appointment_services(*), product:products(*)')
+    .select('*, service:appointment_services(*), product:products(*, images:product_images(*))')
     .eq('id', id)
     .single()
 
-  return data as (Appointment & { service: AppointmentService } & { product: Product | null }) | null
+  return data as (Appointment & { service: AppointmentService } & { product: (Product & { images: ProductImage[] }) | null }) | null
 }
 
 export async function getAllAppointments(client: SupabaseClient) {
   const { data } = await client
     .from('appointments')
-    .select('*, service:appointment_services(*), product:products(*)')
+    .select('*, service:appointment_services(*), product:products(*, images:product_images(*))')
     .order('appointment_date', { ascending: false })
     .order('time_slot', { ascending: false })
 
@@ -423,7 +423,7 @@ export async function getActiveProducts(
     search?: string
     page?: number
     pageSize?: number
-    product_type?: ('buy' | 'book' | 'both')[]
+    product_type?: ('book' | 'rent' | 'both')[]
   }
 ) {
   const page = options?.page ?? 1
@@ -473,6 +473,17 @@ export async function getBookableProducts(client: SupabaseClient) {
   return (data ?? []) as (Product & { images: ProductImage[] })[]
 }
 
+export async function getRentableProducts(client: SupabaseClient) {
+  const { data } = await client
+    .from('products')
+    .select('*, images:product_images(*)')
+    .eq('is_active', true)
+    .in('product_type', ['rent', 'both'])
+    .order('created_at', { ascending: false })
+
+  return (data ?? []) as (Product & { images: ProductImage[] })[]
+}
+
 export async function getProductBySlug(client: SupabaseClient, slug: string) {
   const { data } = await client
     .from('products')
@@ -496,15 +507,6 @@ export async function getFeaturedProducts(
     .limit(limit)
 
   return (data ?? []) as (Product & { images: ProductImage[] })[]
-}
-
-export async function getCategoriesWithProductCount(client: SupabaseClient) {
-  const { data } = await client
-    .from('categories')
-    .select('*, products!inner(id)')
-    .order('sort_order', { ascending: true })
-
-  return (data ?? []) as (Category & { products: { id: number }[] })[]
 }
 
 export async function updateStoreSettings(
@@ -541,163 +543,28 @@ export async function updateStoreSettings(
   return data as StoreSettings
 }
 
-// ─── Orders ───
-
-export async function createOrder(
-  client: SupabaseClient,
-  input: {
-    total_amount: number
-    shipping_name: string
-    shipping_phone: string
-    shipping_address: string
-    shipping_province: string
-    shipping_district: string
-    shipping_subdistrict: string
-    shipping_zip: string
-    note?: string
-    items: {
-      product_id: number
-      product_name: string
-      type: 'buy'
-      quantity: number
-      unit_price: number
-      total_price: number
-    }[]
-  }
-) {
-  const { data: order, error: orderError } = await client
-    .from('orders')
-    .insert({
-      total_amount: input.total_amount,
-      shipping_name: input.shipping_name,
-      shipping_phone: input.shipping_phone,
-      shipping_address: input.shipping_address,
-      shipping_province: input.shipping_province,
-      shipping_district: input.shipping_district,
-      shipping_subdistrict: input.shipping_subdistrict,
-      shipping_zip: input.shipping_zip,
-      note: input.note ?? null,
-    })
-    .select()
-    .single()
-
-  if (orderError) throw orderError
-
-  const { error: itemsError } = await client
-    .from('order_items')
-    .insert(
-      input.items.map((item) => ({
-        order_id: order.id,
-        ...item,
-      }))
-    )
-
-  if (itemsError) throw itemsError
-
-  const { data: fullOrder } = await client
-    .from('orders')
-    .select('*, items:order_items(*)')
-    .eq('id', order.id)
-    .single()
-
-  return fullOrder as Order & { items: OrderItem[] }
-}
-
-export async function getUserOrders(client: SupabaseClient) {
-  const { data: { user } } = await client.auth.getUser()
-  if (!user) return []
-
-  const { data } = await client
-    .from('orders')
-    .select('*, items:order_items(*)')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-
-  return (data ?? []) as (Order & { items: OrderItem[] })[]
-}
-
-export async function getOrder(client: SupabaseClient, id: number) {
-  const { data } = await client
-    .from('orders')
-    .select('*, items:order_items(*)')
-    .eq('id', id)
-    .single()
-
-  return data as (Order & { items: OrderItem[] }) | null
-}
-
-export async function getAllOrders(client: SupabaseClient) {
-  const { data } = await client
-    .from('orders')
-    .select('*, items:order_items(*)')
-    .order('created_at', { ascending: false })
-
-  return (data ?? []) as (Order & { items: OrderItem[] })[]
-}
-
-export async function updateOrderStatus(
-  client: SupabaseClient,
-  id: number,
-  status: Order['status']
-) {
-  const { data, error } = await client
-    .from('orders')
-    .update({
-      status,
-      paid_at: status === 'paid' ? new Date().toISOString() : undefined,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id)
-    .select()
-    .single()
-
-  if (error) throw error
-  return data as Order
-}
-
-export async function updateOrderSlip(
-  client: SupabaseClient,
-  id: number,
-  slipUrl: string
-) {
-  const { data, error } = await client
-    .from('orders')
-    .update({
-      slip_url: slipUrl,
-      status: 'paid',
-      paid_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id)
-    .select()
-    .single()
-
-  if (error) throw error
-  return data as Order
-}
-
 // ─── Dashboard ───
 
 export async function getDashboardStats(client: SupabaseClient) {
-  const { data: orders } = await client
-    .from('orders')
-    .select('id, total_amount, status, created_at')
+  const { data: rentals } = await client
+    .from('rentals')
+    .select('id, rental_price, deposit_amount, status, created_at, product_id, product:products(name)')
     .order('created_at', { ascending: false })
 
-  const totalOrders = orders?.length ?? 0
-  const totalRevenue = orders
-    ?.filter((o) => o.status !== 'cancelled')
-    .reduce((sum, o) => sum + Number(o.total_amount), 0) ?? 0
-  const todayOrders = orders
-    ?.filter((o) => new Date(o.created_at).toDateString() === new Date().toDateString())
+  const totalRentals = rentals?.length ?? 0
+  const totalRevenue = rentals
+    ?.filter((r) => r.status !== 'cancelled')
+    .reduce((sum, r) => sum + Number(r.rental_price), 0) ?? 0
+  const todayRentals = rentals
+    ?.filter((r) => new Date(r.created_at).toDateString() === new Date().toDateString())
     .length ?? 0
-  const pendingOrders = orders
-    ?.filter((o) => o.status === 'pending' || o.status === 'paid')
+  const pendingRentals = rentals
+    ?.filter((r) => r.status === 'pending')
     .length ?? 0
 
-  const ordersByStatus: Record<string, number> = {}
-  orders?.forEach((o) => {
-    ordersByStatus[o.status] = (ordersByStatus[o.status] || 0) + 1
+  const rentalsByStatus: Record<string, number> = {}
+  rentals?.forEach((r) => {
+    rentalsByStatus[r.status] = (rentalsByStatus[r.status] || 0) + 1
   })
 
   const last30 = Array.from({ length: 30 }, (_, i) => {
@@ -708,37 +575,30 @@ export async function getDashboardStats(client: SupabaseClient) {
 
   const revenueByDay: { date: string; revenue: number }[] = last30.map((date) => ({
     date,
-    revenue: orders
-      ?.filter((o) => o.created_at?.startsWith(date) && o.status !== 'cancelled')
-      .reduce((sum, o) => sum + Number(o.total_amount), 0) ?? 0,
+    revenue: rentals
+      ?.filter((r) => r.created_at?.startsWith(date) && r.status !== 'cancelled')
+      .reduce((sum, r) => sum + Number(r.rental_price), 0) ?? 0,
   }))
 
-  const { data: orderItems } = await client
-    .from('order_items')
-    .select('product_name, quantity, total_price, product:products(name)')
-
-  const productSales: Record<string, { qty: number; revenue: number; name: string }> = {}
-  orderItems?.forEach((item) => {
-    if (!productSales[item.product_name]) {
-      const p = item.product as { name?: string } | null
-      productSales[item.product_name] = {
-        qty: 0,
-        revenue: 0,
-        name: p?.name || item.product_name,
-      }
+  const productRentalCounts: Record<string, { count: number; name: string }> = {}
+  rentals?.forEach((r) => {
+    if (r.status === 'cancelled') return
+    const p = r.product as { name?: string } | null
+    const name = p?.name ?? `#${r.product_id}`
+    if (!productRentalCounts[name]) {
+      productRentalCounts[name] = { count: 0, name }
     }
-    productSales[item.product_name].qty += item.quantity
-    productSales[item.product_name].revenue += Number(item.total_price)
+    productRentalCounts[name].count += 1
   })
 
-  const topProducts = Object.entries(productSales)
-    .map(([, data]) => data)
+  const topProducts = Object.entries(productRentalCounts)
+    .map(([, data]) => ({ name: data.name, qty: data.count, revenue: 0 }))
     .sort((a, b) => b.qty - a.qty)
     .slice(0, 10)
 
-  const { data: recentOrders } = await client
-    .from('orders')
-    .select('*, items:order_items(*)')
+  const { data: recentRentals } = await client
+    .from('rentals')
+    .select('*, product:products(*, images:product_images(*))')
     .order('created_at', { ascending: false })
     .limit(5)
 
@@ -773,14 +633,14 @@ export async function getDashboardStats(client: SupabaseClient) {
     .slice(0, 10)
 
   return {
-    totalOrders,
+    totalRentals,
     totalRevenue,
-    todayOrders,
-    pendingOrders,
-    ordersByStatus,
+    todayRentals,
+    pendingRentals,
+    rentalsByStatus,
     revenueByDay,
     topProducts,
-    recentOrders: (recentOrders ?? []) as (Order & { items: OrderItem[] })[],
+    recentRentals: (recentRentals ?? []) as (Rental & { product: Product & { images: ProductImage[] } })[],
     totalAppointments,
     todayAppointments,
     appointmentsByStatus,
@@ -854,4 +714,273 @@ export async function createNotification(
 
   if (error) throw error
   return data
+}
+
+// ─── Product Locks ───
+
+export async function createDateLock(
+  client: SupabaseClient,
+  input: {
+    product_id: number
+    lock_start_date: string
+    lock_end_date: string
+    reason?: string
+    created_by: string
+  }
+) {
+  const { data, error } = await client
+    .from('product_date_locks')
+    .insert({
+      product_id: input.product_id,
+      lock_start_date: input.lock_start_date,
+      lock_end_date: input.lock_end_date,
+      reason: input.reason ?? null,
+      created_by: input.created_by,
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as ProductDateLock
+}
+
+export async function getProductDateLocks(client: SupabaseClient, productId: number) {
+  const { data } = await client
+    .from('product_date_locks')
+    .select('*')
+    .eq('product_id', productId)
+    .order('lock_start_date', { ascending: true })
+
+  return (data ?? []) as ProductDateLock[]
+}
+
+export async function deleteDateLock(client: SupabaseClient, id: number) {
+  const { error } = await client
+    .from('product_date_locks')
+    .delete()
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+export async function isProductAvailable(
+  client: SupabaseClient,
+  productId: number,
+  startDate: string,
+  endDate?: string
+) {
+  const end = endDate ?? startDate
+  const { data } = await client
+    .from('product_date_locks')
+    .select('id')
+    .eq('product_id', productId)
+    .lte('lock_start_date', end)
+    .gte('lock_end_date', startDate)
+    .limit(1)
+
+  return (data?.length ?? 0) === 0
+}
+
+// ─── Rentals ───
+
+export async function createRental(
+  client: SupabaseClient,
+  input: {
+    user_id: string
+    product_id: number
+    appointment_id?: number
+    order_id?: number
+    rental_start_date: string
+    rental_end_date: string
+    rental_price: number
+    deposit_amount: number
+    notes?: string
+  }
+) {
+  const { data, error } = await client
+    .from('rentals')
+    .insert({
+      user_id: input.user_id,
+      product_id: input.product_id,
+      appointment_id: input.appointment_id ?? null,
+      order_id: input.order_id ?? null,
+      rental_start_date: input.rental_start_date,
+      rental_end_date: input.rental_end_date,
+      rental_price: input.rental_price,
+      deposit_amount: input.deposit_amount,
+      notes: input.notes ?? null,
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as Rental
+}
+
+export async function getUserRentals(client: SupabaseClient) {
+  const { data: { user } } = await client.auth.getUser()
+  const { data } = await client
+    .from('rentals')
+    .select('*, product:products(*, images:product_images(*))')
+    .eq('user_id', user?.id ?? '')
+    .order('created_at', { ascending: false })
+
+  return (data ?? []) as (Rental & { product: Product & { images: ProductImage[] } })[]
+}
+
+export async function getAllRentals(client: SupabaseClient) {
+  const { data } = await client
+    .from('rentals')
+    .select('*, product:products(*, images:product_images(*))')
+    .order('created_at', { ascending: false })
+
+  return (data ?? []) as (Rental & { product: Product & { images: ProductImage[] } })[]
+}
+
+export async function getRental(client: SupabaseClient, id: number) {
+  const { data } = await client
+    .from('rentals')
+    .select('*, product:products(*, images:product_images(*))')
+    .eq('id', id)
+    .maybeSingle()
+
+  return data as (Rental & { product: Product & { images: ProductImage[] } }) | null
+}
+
+export async function getAdminRental(client: SupabaseClient, id: number) {
+  const { data } = await client
+    .from('rentals')
+    .select('*, product:products(*, images:product_images(*))')
+    .eq('id', id)
+    .maybeSingle()
+
+  return data as (Rental & { product: Product & { images: ProductImage[] } }) | null
+}
+
+export async function updateRentalStatus(
+  client: SupabaseClient,
+  id: number,
+  status: Rental['status'],
+  notes?: string
+) {
+  const updates: Record<string, unknown> = { status, updated_at: new Date().toISOString() }
+  if (status === 'returned') updates.returned_at = new Date().toISOString()
+  if (notes !== undefined) updates.notes = notes
+
+  const { error } = await client
+    .from('rentals')
+    .update(updates)
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+export async function updateRentalReturn(
+  client: SupabaseClient,
+  id: number,
+  input: {
+    status?: Rental['status']
+    returned_at?: string
+    return_condition?: string
+    return_penalty?: number
+    return_notes?: string
+    notes?: string
+  }
+) {
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  if (input.status !== undefined) updates.status = input.status
+  if (input.returned_at !== undefined) updates.returned_at = input.returned_at
+  if (input.return_condition !== undefined) updates.return_condition = input.return_condition
+  if (input.return_penalty !== undefined) updates.return_penalty = input.return_penalty
+  if (input.return_notes !== undefined) updates.return_notes = input.return_notes
+  if (input.notes !== undefined) updates.notes = input.notes
+
+  const { error } = await client
+    .from('rentals')
+    .update(updates)
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+export async function updateRental(
+  client: SupabaseClient,
+  id: number,
+  input: {
+    rental_start_date?: string
+    rental_end_date?: string
+    rental_price?: number
+    deposit_amount?: number
+    notes?: string
+  }
+) {
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  if (input.rental_start_date !== undefined) updates.rental_start_date = input.rental_start_date
+  if (input.rental_end_date !== undefined) updates.rental_end_date = input.rental_end_date
+  if (input.rental_price !== undefined) updates.rental_price = input.rental_price
+  if (input.deposit_amount !== undefined) updates.deposit_amount = input.deposit_amount
+  if (input.notes !== undefined) updates.notes = input.notes
+
+  const { error } = await client
+    .from('rentals')
+    .update(updates)
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+// ─── Admin Appointment Management ───
+
+export async function updateAppointmentAdmin(
+  client: SupabaseClient,
+  id: number,
+  input: {
+    appointment_date?: string
+    time_slot?: string
+    end_time?: string
+    product_id?: number | null
+    notes?: string
+  }
+) {
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  if (input.appointment_date !== undefined) updates.appointment_date = input.appointment_date
+  if (input.time_slot !== undefined) updates.time_slot = input.time_slot
+  if (input.end_time !== undefined) updates.end_time = input.end_time
+  if (input.product_id !== undefined) updates.product_id = input.product_id
+  if (input.notes !== undefined) updates.notes = input.notes
+
+  const { error } = await client
+    .from('appointments')
+    .update(updates)
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+export async function updateAppointmentCustomer(
+  client: SupabaseClient,
+  id: number,
+  userId: string,
+  input: {
+    appointment_date?: string
+    time_slot?: string
+    end_time?: string
+    product_id?: number | null
+    notes?: string
+  }
+) {
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  if (input.appointment_date !== undefined) updates.appointment_date = input.appointment_date
+  if (input.time_slot !== undefined) updates.time_slot = input.time_slot
+  if (input.end_time !== undefined) updates.end_time = input.end_time
+  if (input.product_id !== undefined) updates.product_id = input.product_id
+  if (input.notes !== undefined) updates.notes = input.notes
+
+  const { error } = await client
+    .from('appointments')
+    .update(updates)
+    .eq('id', id)
+    .eq('user_id', userId)
+
+  if (error) throw error
 }

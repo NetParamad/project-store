@@ -2,15 +2,15 @@ import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { getCategories } from '@/lib/supabase/queries'
 import { SearchBar } from '@/components/search-bar'
-import { TypeTabs } from './type-tabs'
-import { CategoryFilter } from './category-filter'
-import { ProductGrid } from './_components/product-grid'
+import { TypeTabs } from '../type-tabs'
+import { CategoryFilter } from '../category-filter'
+import { ProductGrid } from '../_components/product-grid'
 
 interface Props {
   searchParams: Promise<{ category?: string; search?: string; page?: string }>
 }
 
-export default async function ProductsPage({ searchParams }: Props) {
+export default async function RentProductsPage({ searchParams }: Props) {
   const supabase = await createClient()
   const categories = await getCategories(supabase)
 
@@ -39,7 +39,7 @@ export default async function ProductsPage({ searchParams }: Props) {
       </div>
 
       <Suspense fallback={<div className="text-center py-16">สินค้า...</div>}>
-        <ProductGrid searchParams={searchParams} />
+        <ProductGrid searchParams={searchParams} typeFilter={['rent', 'both']} />
       </Suspense>
     </div>
   )

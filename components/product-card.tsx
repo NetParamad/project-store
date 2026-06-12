@@ -10,17 +10,12 @@ interface Props {
 
 export async function ProductCard({ product }: Props) {
   const primaryImage = product.images?.find((img) => img.is_primary) ?? product.images?.[0]
-  const hasPurchase = Number(product.price) > 0 && Number(product.stock_qty) > 0
-  const isOutOfStock = Number(product.stock_qty) <= 0
   const displayName = product.name
 
   return (
     <Link
       href={`/products/${product.slug}`}
-      className={cn(
-        'group rounded-lg border bg-background overflow-hidden hover:shadow-md transition-shadow',
-        isOutOfStock && 'opacity-60'
-      )}
+      className="group rounded-lg border bg-background overflow-hidden hover:shadow-md transition-shadow"
     >
       <div className="aspect-square bg-muted relative overflow-hidden">
         {primaryImage ? (
@@ -35,27 +30,27 @@ export async function ProductCard({ product }: Props) {
             <ImageIcon size={40} strokeWidth={1.5} />
           </div>
         )}
-        <div className="absolute top-2 left-2 flex gap-1">
-          {product.product_type !== 'book' && isOutOfStock ? (
-            <Badge variant="destructive" className="text-xs">สินค้าหมด</Badge>
-          ) : (
-            <>
-              {(product.product_type === 'buy' || product.product_type === 'both') && hasPurchase && (
-                <Badge variant="secondary" className="text-xs">ซื้อ</Badge>
-              )}
-              {(product.product_type === 'book' || product.product_type === 'both') && (
-                <Badge variant="outline" className="border-blue-300 text-blue-700 text-xs border">จอง</Badge>
-              )}
-            </>
+        <div className="absolute top-2 left-2">
+          {product.product_type === 'book' && (
+            <Badge variant="outline" className="border-blue-300 text-blue-700 text-xs border">จอง-ลอง</Badge>
+          )}
+          {product.product_type === 'rent' && (
+            <Badge variant="outline" className="border-purple-300 text-purple-700 text-xs border">เช่าชุด</Badge>
+          )}
+          {product.product_type === 'both' && (
+            <Badge variant="outline" className="border-green-300 text-green-700 text-xs border">จอง+เช่า</Badge>
           )}
         </div>
       </div>
-      <div className="p-3 space-y-1">
+      <div className="p-3 space-y-1.5">
         <h3 className="font-medium text-sm line-clamp-1">{displayName}</h3>
-        {hasPurchase && (
-          <span className="font-semibold text-sm pt-1">
-            ฿{Number(product.price).toLocaleString()}
-          </span>
+        {(product.product_type === 'rent' || product.product_type === 'both') && Number(product.rental_price) > 0 && (
+          <p className="text-xs text-muted-foreground">
+            เช่า <span className="font-medium text-foreground">฿{Number(product.rental_price).toLocaleString()}</span>
+            {Number(product.rental_deposit) > 0 && (
+              <> + ประกัน ฿{Number(product.rental_deposit).toLocaleString()}</>
+            )}
+          </p>
         )}
       </div>
     </Link>

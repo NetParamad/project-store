@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, ShoppingBag, CalendarDays, LayoutDashboard } from "lucide-react";
 import type { Profile } from "@/lib/db.types";
 
 export function AuthButton() {
@@ -53,7 +53,7 @@ export function AuthButton() {
           <User size={18} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[150px]">
+      <DropdownMenuContent align="end" className="min-w-[170px]">
         <DropdownMenuItem className="font-medium text-sm" disabled>
           {profile.display_name || profile.id.slice(0, 8)}
         </DropdownMenuItem>
@@ -63,7 +63,27 @@ export function AuthButton() {
             โปรไฟล์
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 cursor-pointer">
+        <DropdownMenuItem asChild>
+          <Link href="/rentals" className="flex items-center gap-2 cursor-pointer">
+            <ShoppingBag size={14} />
+            รายการเช่า
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/appointments" className="flex items-center gap-2 cursor-pointer">
+            <CalendarDays size={14} />
+            การนัดหมาย
+          </Link>
+        </DropdownMenuItem>
+        {profile.role === 'admin' && (
+          <DropdownMenuItem asChild>
+            <Link href="/admin" className="flex items-center gap-2 cursor-pointer">
+              <LayoutDashboard size={14} />
+              แผงจัดการ
+            </Link>
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 cursor-pointer text-destructive">
           <LogOut size={14} />
           ออกจากระบบ
         </DropdownMenuItem>

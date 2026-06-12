@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getCategories, getProduct } from '@/lib/supabase/queries'
+import { getCategories, getProduct, getProductDateLocks } from '@/lib/supabase/queries'
 import { ProductForm } from '../../product-form'
+import { DateLockManager } from './date-lock-manager'
 
 export default async function EditProductPage({
   params,
@@ -13,9 +14,10 @@ export default async function EditProductPage({
   if (isNaN(productId)) notFound()
 
   const supabase = await createClient()
-  const [product, categories] = await Promise.all([
+  const [product, categories, dateLocks] = await Promise.all([
     getProduct(supabase, productId),
     getCategories(supabase),
+    getProductDateLocks(supabase, productId),
   ])
 
   if (!product) notFound()
@@ -29,6 +31,7 @@ export default async function EditProductPage({
         </p>
       </div>
       <ProductForm categories={categories} initialData={product} />
+      <DateLockManager productId={productId} initialLocks={dateLocks} />
     </div>
   )
 }

@@ -2,10 +2,10 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getProductBySlug } from '@/lib/supabase/queries'
-import { AddToCartButton } from './add-to-cart-button'
 import { ProductGallery } from './product-gallery'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { ChevronLeft } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 
 export default async function ProductDetailPage({
@@ -20,17 +20,19 @@ export default async function ProductDetailPage({
   if (!product) notFound()
 
   const images = product.images ?? []
-
-  const canPurchase = product.product_type !== 'book'
-  const canBook = product.product_type !== 'buy'
-  const hasPurchase = canPurchase && Number(product.price) > 0 && Number(product.stock_qty) > 0
-  const isOutOfStock = canPurchase && Number(product.stock_qty) <= 0
   const productName = product.name
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+      <Link
+        href="/products"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
+      >
+        <ChevronLeft size={16} />
+        กลับไปสินค้าทั้งหมด
+      </Link>
+
       <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-        {/* Images */}
         {images.length > 0 ? (
           <ProductGallery images={images} productName={productName} />
         ) : (
@@ -40,45 +42,53 @@ export default async function ProductDetailPage({
           </CardContent></Card>
         )}
 
-        {/* Info */}
         <div className="space-y-6">
-          <div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              {product.product_type === 'book' && (
+                <Badge variant="outline" className="border-blue-300 text-blue-700">จอง-ลอง</Badge>
+              )}
+              {product.product_type === 'rent' && (
+                <Badge variant="outline" className="border-purple-300 text-purple-700">เช่าชุด</Badge>
+              )}
+              {product.product_type === 'both' && (
+                <Badge variant="outline" className="border-green-300 text-green-700">จอง+เช่า</Badge>
+              )}
+            </div>
             <h1 className="text-3xl font-bold">{productName}</h1>
           </div>
 
-          {/* Pricing */}
-          <div className="space-y-3">
-            {product.product_type !== 'book' && (
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold">
-                  {hasPurchase ? `฿${Number(product.price).toLocaleString()}` : 'ติดต่อสอบถาม'}
-                </span>
-                <span className="text-sm text-muted-foreground">ซื้อ</span>
-              </div>
-            )}
+          {(product.product_type === 'rent' || product.product_type === 'both') && (
+            <Card className="border-blue-200 bg-blue-50">
+              <CardContent className="p-4 space-y-2">
+                <h3 className="font-semibold text-blue-800">บริการเช่าชุด</h3>
+                <div className="text-sm text-blue-700 space-y-1">
+                  <p>ราคาเช่า: ฿{Number(product.rental_price).toLocaleString()}</p>
+                  {Number(product.rental_deposit) > 0 && (
+                    <p>ค่าประกัน: ฿{Number(product.rental_deposit).toLocaleString()}</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-            {product.product_type !== 'buy' && (
+          <div className="space-y-2">
+            {(product.product_type === 'book' || product.product_type === 'both') && (
               <Button asChild variant="outline" className="w-full">
                 <Link href={`/appointments/book?product=${product.slug}`}>
-                  จองลองชุด
+                  จอง (ลองชุด)
+                </Link>
+              </Button>
+            )}
+            {(product.product_type === 'rent' || product.product_type === 'both') && (
+              <Button asChild variant="default" className="w-full">
+                <Link href={`/rentals/new?product=${product.slug}`}>
+                  เช่าชุด
                 </Link>
               </Button>
             )}
           </div>
 
-          {product.product_type !== 'book' && (
-            isOutOfStock ? (
-              <Badge variant="destructive" className="bg-destructive/10 text-destructive hover:bg-destructive/10 text-sm px-3 py-1">
-                สินค้าหมด
-              </Badge>
-            ) : hasPurchase ? (
-              <span className="text-sm text-muted-foreground">
-                สต็อก: {product.stock_qty}
-              </span>
-            ) : null
-          )}
-
-          {/* Description */}
           {product.description && (
             <div className="space-y-2">
               <h3 className="font-medium">รายละเอียด</h3>
@@ -87,14 +97,6 @@ export default async function ProductDetailPage({
               </p>
             </div>
           )}
-
-          {canPurchase && hasPurchase && (
-            <AddToCartButton
-              product={product}
-              outOfStock={isOutOfStock}
-            />
-          )}
-
 
         </div>
       </div>

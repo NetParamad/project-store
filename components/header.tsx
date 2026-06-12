@@ -4,9 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getStoreSettings } from "@/lib/supabase/queries";
 import { AuthButton } from "./auth-button";
 import { ThemeSwitcher } from "./theme-switcher";
-import { CartButton } from "./cart-button";
 import { NotificationBell } from "./notification-bell";
 import { NavLinks } from "./nav-links";
+import { Button } from "@/components/ui/button";
 
 
 function AuthSection() {
@@ -39,10 +39,17 @@ export async function Header() {
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
+            <div className="hidden md:flex items-center gap-2 mr-2">
+              <Button asChild variant="default" size="sm">
+                <Link href="/products/rent">เช่าชุด</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/appointments/book">จอง-ลอง</Link>
+              </Button>
+            </div>
             <Suspense fallback={null}>
               <NotificationBell />
             </Suspense>
-            <CartButton />
             <ThemeSwitcher />
             <Suspense fallback={<AuthSectionSkeleton />}>
               <AuthSection />

@@ -77,7 +77,7 @@ export default function NotificationsPage() {
           <Bell size={48} className="mx-auto text-muted-foreground" />
           <p className="text-muted-foreground">ยังไม่มีการแจ้งเตือน</p>
           <Button asChild>
-            <Link href="/products">เลือกซื้อสินค้า</Link>
+            <Link href="/products">เลือกชมสินค้า</Link>
           </Button>
         </div>
       ) : (

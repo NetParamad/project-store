@@ -3,19 +3,15 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { useCart } from '@/components/cart-provider'
 import { createClient } from '@/lib/supabase/client'
-import { House, Package, ShoppingCart, User } from 'lucide-react'
+import { House, Package, ShoppingBag, CalendarDays, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function MobileBottomNav() {
   const pathname = usePathname()
-  const { totalItems } = useCart()
-  const [hydrated, setHydrated] = useState(false)
   const [loggedIn, setLoggedIn] = useState(false)
 
   useEffect(() => {
-    setHydrated(true)
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
       setLoggedIn(!!user)
@@ -23,18 +19,24 @@ export function MobileBottomNav() {
   }, [])
 
   if (pathname.startsWith('/admin')) return null
-  if (pathname.startsWith('/checkout')) return null
 
-  const tabs = [
+  const loggedOutTabs = [
     { href: '/', label: 'หน้าแรก', icon: House },
     { href: '/products', label: 'สินค้า', icon: Package },
-    { href: '/cart', label: 'ตะกร้า', icon: ShoppingCart },
-    {
-      href: loggedIn ? '/profile' : '/auth/login',
-      label: loggedIn ? 'บัญชี' : 'เข้าสู่ระบบ',
-      icon: User,
-    },
+    { href: '/products/rent', label: 'เช่าชุด', icon: ShoppingBag },
+    { href: '/appointments/book', label: 'จอง-ลอง', icon: CalendarDays },
+    { href: '/auth/login', label: 'เข้าสู่ระบบ', icon: User },
   ]
+
+  const loggedInTabs = [
+    { href: '/', label: 'หน้าแรก', icon: House },
+    { href: '/products', label: 'สินค้า', icon: Package },
+    { href: '/rentals', label: 'รายการเช่า', icon: ShoppingBag },
+    { href: '/appointments', label: 'นัดหมาย', icon: CalendarDays },
+    { href: '/profile', label: 'บัญชี', icon: User },
+  ]
+
+  const tabs = loggedIn ? loggedInTabs : loggedOutTabs
 
   return (
     <nav
@@ -58,14 +60,7 @@ export function MobileBottomNav() {
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <div className="relative">
-                <Icon size={20} />
-                {tab.href === '/cart' && hydrated && totalItems > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center h-4 min-w-[16px] rounded-full bg-primary text-[10px] font-bold text-primary-foreground px-1">
-                    {totalItems > 99 ? '99+' : totalItems}
-                  </span>
-                )}
-              </div>
+              <Icon size={20} />
               <span className="text-[10px] font-medium">{tab.label}</span>
             </Link>
           )

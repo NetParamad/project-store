@@ -6,7 +6,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
-import { CartProvider } from "@/components/cart-provider";
 import { ColorThemeProvider } from "@/components/color-theme-provider";
 import { createClient } from "@/lib/supabase/server";
 import { getStoreSettings } from "@/lib/supabase/queries";
@@ -49,16 +48,14 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <ColorThemeProvider>
-          <CartProvider>
-            <div className="min-h-screen flex flex-col pb-16 md:pb-0">
-              <Header />
-              <main className="flex-1">
-                {children}
-              </main>
-              <Suspense fallback={null}><Footer /></Suspense>
-              <Suspense fallback={null}><MobileBottomNav /></Suspense>
-            </div>
-          </CartProvider>
+          <div className="min-h-screen flex flex-col pb-16 md:pb-0">
+            <Header />
+            <main className="flex-1">
+              {children}
+            </main>
+            <Suspense fallback={null}><Footer /></Suspense>
+            <Suspense fallback={null}><MobileBottomNav /></Suspense>
+          </div>
           </ColorThemeProvider>
           <Toaster />
         </ThemeProvider>

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -11,16 +12,17 @@ interface Props {
 }
 
 export function Pagination({ currentPage, totalPages, searchParams }: Props) {
+  const pathname = usePathname()
+
   if (totalPages <= 1) return null
 
   function buildUrl(page: number) {
     const params = new URLSearchParams()
     if (searchParams.category) params.set('category', searchParams.category)
     if (searchParams.search) params.set('search', searchParams.search)
-    if (searchParams.type) params.set('type', searchParams.type)
     if (page > 1) params.set('page', page.toString())
     const qs = params.toString()
-    return `/products${qs ? `?${qs}` : ''}`
+    return qs ? `${pathname}?${qs}` : pathname
   }
 
   const pages: (number | '...')[] = []

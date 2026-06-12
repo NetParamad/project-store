@@ -42,7 +42,6 @@ function BookAppointmentContent() {
   const [occupiedSlots, setOccupiedSlots] = useState<{ time_slot: string; end_time: string; service_id: number }[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [step, setStep] = useState(1)
 
   const [selectedServiceId, setSelectedServiceId] = useState('')
   const [selectedProductId, setSelectedProductId] = useState('none')
@@ -52,41 +51,44 @@ function BookAppointmentContent() {
   const [notes, setNotes] = useState('')
 
   const selectedService = services.find(s => s.id.toString() === selectedServiceId)
-  const isTryOn = selectedService?.type === 'try_on'
+  const selectedProduct = products.find(p => p.id.toString() === selectedProductId)
 
   useEffect(() => {
     const fetch = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth?redirect=/appointments/book')
-        return
-      }
-      const [svc, prods] = await Promise.all([
-        getActiveAppointmentServices(supabase),
-        getBookableProducts(supabase),
-      ])
-      setServices(svc)
-      setProducts(prods)
-
-      if (preselectProductSlug) {
-        const matched = prods.find(p => p.slug === preselectProductSlug)
-        if (matched) {
-          setSelectedProductId(matched.id.toString())
-          const tryOn = svc.find(s => s.type === 'try_on')
-          if (tryOn) setSelectedServiceId(tryOn.id.toString())
-          setLoading(false)
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/auth?redirect=/appointments/book')
           return
         }
-      }
+        const [svc, bookable] = await Promise.all([
+          getActiveAppointmentServices(supabase),
+          getBookableProducts(supabase),
+        ])
+        const available = bookable.filter(p => !p.is_locked)
+        setServices(svc)
+        setProducts(available)
 
-      if (svc.length > 0) {
-        setSelectedServiceId(svc[0].id.toString())
+        if (preselectProductSlug) {
+          const matched = available.find(p => p.slug === preselectProductSlug)
+          if (matched) {
+            setSelectedProductId(matched.id.toString())
+            const tryOn = svc.find(s => s.type === 'try_on')
+            if (tryOn) setSelectedServiceId(tryOn.id.toString())
+            setLoading(false)
+            return
+          }
+        }
+
+        if (svc.length > 0) {
+          setSelectedServiceId(svc[0].id.toString())
+        }
+      } catch (err) {
+        console.error('Failed to load booking data:', err)
+      } finally {
+        setLoading(false)
       }
-      if (svc.length === 1) {
-        setSelectedServiceId(svc[0].id.toString())
-      }
-      setLoading(false)
     }
     fetch()
   }, [router, preselectProductSlug])
@@ -140,6 +142,7 @@ function BookAppointmentContent() {
 
       const endTime = addMinutes(selectedTime, selectedService.duration_minutes)
       const { createAppointment, createNotification } = await import('@/lib/supabase/queries')
+
       await createAppointment(supabase, {
         user_id: user.id,
         service_id: selectedService.id,
@@ -156,7 +159,7 @@ function BookAppointmentContent() {
           user_id: user.id,
           type: 'appointment_update',
           title: 'จองนัดหมายสำเร็จ!',
-          message: `คุณได้จอง ${selectedService.name} ในวันที่ ${selectedDate} เวลา ${selectedTime.substring(0, 5)}`,
+          message: `คุณได้จอง ${selectedService.name} ในวันที่ ${new Date(selectedDate + 'T00:00:00').toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })} เวลา ${selectedTime.substring(0, 5)}`,
           link: '/appointments',
         })
       } catch {} // best-effort
@@ -186,7 +189,7 @@ function BookAppointmentContent() {
         <Button asChild variant="ghost" size="icon">
           <Link href="/appointments"><ArrowLeft size={18} /></Link>
         </Button>
-        <h1 className="text-2xl font-bold">จองนัดหมาย</h1>
+          <h1 className="text-2xl font-bold">จองนัดหมาย (ลองชุด)</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -208,12 +211,12 @@ function BookAppointmentContent() {
             </Select>
           </div>
 
-          {isTryOn && (
+          {selectedService?.type === 'try_on' && (
             <div className="space-y-2">
-              <Label>เลือกสินค้า (ไม่บังคับสำหรับลองชุด)</Label>
+              <Label>เลือกสินค้า (ไม่บังคับ)</Label>
               <Select value={selectedProductId} onValueChange={setSelectedProductId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="เลือกสินค้า (ไม่บังคับสำหรับลองชุด)" />
+                  <SelectValue placeholder="เลือกสินค้า" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">—</SelectItem>
@@ -276,14 +279,13 @@ function BookAppointmentContent() {
           <CardContent className="p-4 space-y-4">
           <h2 className="font-semibold">ข้อมูลเพิ่มเติม</h2>
           <div className="space-y-2">
-            <Label htmlFor="phone">เบอร์โทร <span className="text-destructive">*</span></Label>
+            <Label htmlFor="phone">เบอร์โทร</Label>
             <Input
               id="phone"
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="เบอร์โทรศัพท์สำหรับติดต่อ"
-              required
               pattern="[0-9]{10}"
               title="กรุณากรอกเบอร์โทร 10 หลัก"
             />

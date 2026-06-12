@@ -29,7 +29,11 @@ export interface Product {
   price: number
   stock_qty: number
   is_active: boolean
-  product_type: 'buy' | 'book' | 'both'
+  product_type: 'book' | 'rent' | 'both'
+  rental_price: number
+  rental_deposit: number
+  is_locked: boolean
+  locked_reason: string | null
   created_at: string
   updated_at: string
   images?: ProductImage[]
@@ -44,17 +48,6 @@ export interface ProductImage {
   created_at: string
 }
 
-export type ProductFormData = {
-  category_id: string
-  name: string
-  slug: string
-  description: string
-  price: string
-  stock_qty: string
-  is_active: boolean
-  product_type: string
-}
-
 export type CategoryFormData = {
   name: string
   slug: string
@@ -62,6 +55,16 @@ export type CategoryFormData = {
   image_url: string
   parent_id: string
   sort_order: string
+}
+
+export interface ProductDateLock {
+  id: number
+  product_id: number
+  lock_start_date: string
+  lock_end_date: string
+  reason: string | null
+  created_at: string
+  created_by: string | null
 }
 
 export interface AppointmentService {
@@ -76,6 +79,34 @@ export interface AppointmentService {
   updated_at: string
 }
 
+export interface Rental {
+  id: number
+  user_id: string
+  product_id: number
+  appointment_id: number | null
+  rental_start_date: string
+  rental_end_date: string
+  rental_price: number
+  deposit_amount: number
+  status: 'pending' | 'active' | 'returned' | 'late' | 'cancelled'
+  returned_at: string | null
+  return_condition: string | null
+  return_penalty: number | null
+  return_notes: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type RentalFormData = {
+  product_id: string
+  rental_start_date: string
+  rental_end_date: string
+  rental_price: string
+  deposit_amount: string
+  notes: string
+}
+
 export interface Appointment {
   id: number
   user_id: string
@@ -87,6 +118,11 @@ export interface Appointment {
   phone: string | null
   notes: string | null
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
+  is_rental: boolean
+  rental_id: number | null
+  admin_notes: string | null
+  try_on_price: number | null
+  try_on_only: boolean
   created_at: string
   updated_at: string
 }
@@ -146,42 +182,10 @@ export type StoreSettingsFormData = {
   map_url: string
 }
 
-export interface Order {
-  id: number
-  user_id: string
-  status: 'pending' | 'paid' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled'
-  total_amount: number
-  shipping_name: string | null
-  shipping_phone: string | null
-  shipping_address: string | null
-  shipping_province: string | null
-  shipping_district: string | null
-  shipping_subdistrict: string | null
-  shipping_zip: string | null
-  note: string | null
-  slip_url: string | null
-  paid_at: string | null
-  created_at: string
-  updated_at: string
-  items?: OrderItem[]
-}
-
-export interface OrderItem {
-  id: number
-  order_id: number
-  product_id: number
-  product_name: string
-  type: 'buy'
-  quantity: number
-  unit_price: number
-  total_price: number
-  created_at: string
-}
-
 export interface Notification {
   id: number
   user_id: string
-  type: 'general' | 'order_update' | 'payment_confirmed' | 'appointment_update'
+  type: 'general' | 'appointment_update'
   title: string
   message: string | null
   link: string | null

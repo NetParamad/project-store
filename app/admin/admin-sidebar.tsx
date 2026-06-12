@@ -6,13 +6,13 @@ import {
   LayoutDashboard,
   Package,
   Tags,
-  ShoppingCart,
   CalendarDays,
   Settings,
   ChevronLeft,
   ChevronRight,
   House,
   Menu,
+  ShoppingBag,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -32,7 +32,7 @@ function SidebarNav({ collapsed, onToggle }: { collapsed: boolean; onToggle: () 
     { href: '/admin', label: 'แดชบอร์ด', icon: LayoutDashboard },
     { href: '/admin/products', label: 'สินค้า', icon: Package },
     { href: '/admin/categories', label: 'หมวดหมู่', icon: Tags },
-    { href: '/admin/orders', label: 'คำสั่งซื้อ', icon: ShoppingCart },
+    { href: '/admin/rentals', label: 'รายการเช่า', icon: ShoppingBag },
     { href: '/admin/appointments', label: 'การนัดหมาย', icon: CalendarDays },
     { href: '/admin/settings', label: 'ตั้งค่า', icon: Settings },
   ]
@@ -103,8 +103,8 @@ export function AdminSidebar() {
   const bottomTabs = [
     { href: '/admin', label: 'แดชบอร์ด', icon: LayoutDashboard },
     { href: '/admin/products', label: 'สินค้า', icon: Package },
-    { href: '/admin/orders', label: 'คำสั่งซื้อ', icon: ShoppingCart },
-    { href: '/admin/appointments', label: 'การนัดหมาย', icon: CalendarDays },
+    { href: '/admin/rentals', label: 'รายการเช่า', icon: ShoppingBag },
+    { href: '/admin/appointments', label: 'นัดหมาย', icon: CalendarDays },
   ]
 
   const overflowItems = [

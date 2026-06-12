@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 
 export function DeleteProductButton({ id }: { id: number }) {
   const [open, setOpen] = useState(false)
@@ -24,11 +25,34 @@ export function DeleteProductButton({ id }: { id: number }) {
     setLoading(true)
     try {
       const supabase = createClient()
+
+      const { count: rentalCount } = await supabase
+        .from('rentals').select('*', { count: 'exact', head: true }).eq('product_id', id)
+      const { count: appointmentCount } = await supabase
+        .from('appointments').select('*', { count: 'exact', head: true }).eq('product_id', id)
+      const { count: lockCount } = await supabase
+        .from('product_date_locks').select('*', { count: 'exact', head: true }).eq('product_id', id)
+
+      const refs: string[] = []
+      if (rentalCount) refs.push(`รายการเช่า (${rentalCount})`)
+      if (appointmentCount) refs.push(`การนัดหมาย (${appointmentCount})`)
+      if (lockCount) refs.push(`การล็อควันที่ (${lockCount})`)
+
+      if (refs.length) {
+        toast.error(`ไม่สามารถลบสินค้าที่มีข้อมูลเชื่อมโยง: ${refs.join(', ')}`)
+        return
+      }
+
+      await supabase.from('product_images').delete().eq('product_id', id)
+
       const { error } = await supabase.from('products').delete().eq('id', id)
       if (error) throw error
       setOpen(false)
+      toast.success('ลบสินค้าแล้ว')
       router.refresh()
     } catch (err) {
+      const msg = (err as { message?: string })?.message || 'ไม่สามารถลบสินค้าได้'
+      toast.error(msg)
       console.error('Failed to delete product:', err)
     } finally {
       setLoading(false)

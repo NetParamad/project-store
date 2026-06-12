@@ -4,12 +4,12 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getUserAppointments } from '@/lib/supabase/queries'
-import { Loader2, CalendarDays, Eye } from 'lucide-react'
+import { Loader2, CalendarDays, Eye, ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import Link from 'next/link'
-import type { Appointment, AppointmentService, Product } from '@/lib/db.types'
+import type { Appointment, AppointmentService, Product, ProductImage } from '@/lib/db.types'
 
 const statusLabels: Record<string, string> = {
   pending: 'รอยืนยัน',
@@ -27,20 +27,25 @@ const statusColors: Record<string, string> = {
 
 export default function AppointmentsPage() {
   const router = useRouter()
-  const [appointments, setAppointments] = useState<(Appointment & { service: AppointmentService } & { product: Product | null })[]>([])
+  const [appointments, setAppointments] = useState<(Appointment & { service: AppointmentService } & { product: (Product & { images: ProductImage[] }) | null })[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetch = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth?redirect=/appointments')
-        return
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/auth?redirect=/appointments')
+          return
+        }
+        const data = await getUserAppointments(supabase)
+        setAppointments(data)
+      } catch (err) {
+        console.error('Failed to load appointments:', err)
+      } finally {
+        setLoading(false)
       }
-      const data = await getUserAppointments(supabase)
-      setAppointments(data)
-      setLoading(false)
     }
     fetch()
   }, [router])
@@ -67,7 +72,7 @@ export default function AppointmentsPage() {
           <CalendarDays size={48} className="mx-auto text-muted-foreground" />
           <p className="text-muted-foreground">ยังไม่มีการนัดหมาย</p>
           <Button asChild>
-            <Link href="/products">เลือกซื้อสินค้า</Link>
+            <Link href="/products">เลือกชมสินค้า</Link>
           </Button>
         </div>
       ) : (
@@ -78,14 +83,31 @@ export default function AppointmentsPage() {
             return (
               <Card key={apt.id}>
                 <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">
-                    #{apt.id} &middot; {apt.appointment_date} {apt.time_slot?.substring(0, 5)}
-                  </p>
-                  <p className="font-medium">{serviceName}{productName ? ` — ${productName}` : ''}</p>
-                  <Badge className={`${statusColors[apt.status] || 'bg-gray-100 text-gray-800'} border-transparent`}>
-                    {statusLabels[apt.status] || apt.status}
-                  </Badge>
+                <div className="flex items-center gap-3">
+                  {productName && (
+                    <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-muted">
+                      {apt.product && apt.product.images.length > 0 ? (
+                        <img
+                          src={apt.product.images.find(i => i.is_primary)?.url ?? apt.product.images[0].url}
+                          alt={productName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <ImageIcon size={18} className="text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">
+                      #{apt.id} &middot; {new Date(apt.appointment_date + 'T00:00:00').toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })} {apt.time_slot?.substring(0, 5)}
+                    </p>
+                    <p className="font-medium">{serviceName}{productName ? ` — ${productName}` : ''}</p>
+                    <Badge className={`${statusColors[apt.status] || 'bg-gray-100 text-gray-800'} border-transparent`}>
+                      {statusLabels[apt.status] || apt.status}
+                    </Badge>
+                  </div>
                 </div>
                 <Button asChild variant="outline" size="sm" className="self-start sm:self-auto">
                   <Link href={`/appointments/${apt.id}`}>

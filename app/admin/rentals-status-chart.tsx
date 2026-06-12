@@ -16,16 +16,14 @@ const CHART_COLORS = [
 ]
 
 const statusLabels: Record<string, string> = {
-  pending: 'รอการชำระเงิน',
-  paid: 'ชำระแล้ว - รอยืนยัน',
-  confirmed: 'ยืนยันแล้ว',
-  shipped: 'จัดส่งแล้ว',
-  delivered: 'ได้รับแล้ว',
-  completed: 'เสร็จสิ้น',
+  pending: 'รอดำเนินการ',
+  active: 'กำลังเช่า',
+  returned: 'คืนแล้ว',
+  late: 'เกินกำหนด',
   cancelled: 'ยกเลิก',
 }
 
-export function OrdersByStatusChart({ data }: Props) {
+export function RentalsByStatusChart({ data }: Props) {
   const items = Object.entries(data)
     .filter(([, count]) => count > 0)
     .map(([status, count]) => ({
@@ -33,12 +31,25 @@ export function OrdersByStatusChart({ data }: Props) {
       value: count,
     }))
 
-  if (items.length === 0) return null
+  if (items.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="p-4 pb-0">
+          <CardTitle className="text-sm font-semibold">สถานะรายการเช่า</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
+            ไม่มีข้อมูลสถานะรายการเช่า
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card>
       <CardHeader className="p-4 pb-0">
-        <CardTitle className="text-sm font-semibold">สถานะคำสั่งซื้อ</CardTitle>
+        <CardTitle className="text-sm font-semibold">สถานะรายการเช่า</CardTitle>
       </CardHeader>
       <CardContent className="p-4">
       <div className="h-64">

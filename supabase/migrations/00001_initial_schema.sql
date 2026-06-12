@@ -27,6 +27,17 @@ BEGIN
 END;
 $$;
 
+-- Auto-update updated_at on row modification
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$;
+
 -- Auto-create profile on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
@@ -118,7 +129,11 @@ CREATE TABLE IF NOT EXISTS public.products (
   price DECIMAL(10,2) NOT NULL DEFAULT 0,
   stock_qty INTEGER NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT true,
-  product_type TEXT NOT NULL DEFAULT 'buy' CHECK (product_type IN ('buy', 'book', 'both')),
+  product_type TEXT NOT NULL DEFAULT 'book' CHECK (product_type IN ('book', 'rent', 'both')),
+  rental_price DECIMAL(10,2) NOT NULL DEFAULT 0,
+  rental_deposit DECIMAL(10,2) NOT NULL DEFAULT 0,
+  is_locked BOOLEAN NOT NULL DEFAULT false,
+  locked_reason TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -244,90 +259,70 @@ INSERT INTO public.store_settings (id, store_name, theme, business_hours_start, 
 VALUES (1, 'ร้านของฉัน', 'zinc', '09:00', '17:00')
 ON CONFLICT (id) DO NOTHING;
 
--- 6. ORDERS
-CREATE TABLE IF NOT EXISTS public.orders (
+-- 6. SETUP: Set first user as admin (run after your first signup)
+-- UPDATE public.profiles SET role = 'admin'
+-- WHERE id = (SELECT id FROM auth.users WHERE email = 'your-email@example.com');
+
+-- 8.5. PRODUCT DATE LOCKS
+CREATE TABLE IF NOT EXISTS public.product_date_locks (
+  id BIGSERIAL PRIMARY KEY,
+  product_id BIGINT NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+  lock_start_date DATE NOT NULL,
+  lock_end_date DATE NOT NULL,
+  reason TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_by UUID REFERENCES auth.users(id)
+);
+
+ALTER TABLE public.product_date_locks ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins can manage product date locks" ON public.product_date_locks;
+CREATE POLICY "Admins can manage product date locks"
+  ON public.product_date_locks FOR ALL
+  USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Anyone can view product date locks" ON public.product_date_locks;
+CREATE POLICY "Anyone can view product date locks"
+  ON public.product_date_locks FOR SELECT
+  USING (true);
+
+-- 8.6. RENTALS
+CREATE TABLE IF NOT EXISTS public.rentals (
   id BIGSERIAL PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id),
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','paid','confirmed','shipped','delivered','cancelled')),
-  total_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
-  shipping_name TEXT,
-  shipping_phone TEXT,
-  shipping_address TEXT,
-  shipping_province TEXT,
-  shipping_district TEXT,
-  shipping_subdistrict TEXT,
-  shipping_zip TEXT,
-  note TEXT,
-  slip_url TEXT,
-  paid_at TIMESTAMPTZ,
+  product_id BIGINT NOT NULL REFERENCES public.products(id),
+  appointment_id BIGINT,
+  rental_start_date DATE NOT NULL,
+  rental_end_date DATE NOT NULL,
+  rental_price DECIMAL(10,2) NOT NULL DEFAULT 0,
+  deposit_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'active', 'returned', 'late', 'cancelled')),
+  returned_at TIMESTAMPTZ,
+  return_condition TEXT,
+  return_penalty DECIMAL(10,2) DEFAULT 0,
+  return_notes TEXT,
+  notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rentals ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Users can view own orders" ON public.orders;
-CREATE POLICY "Users can view own orders"
-  ON public.orders FOR SELECT
+DROP POLICY IF EXISTS "Users can view own rentals" ON public.rentals;
+CREATE POLICY "Users can view own rentals"
+  ON public.rentals FOR SELECT
   USING (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users can create orders" ON public.orders;
-CREATE POLICY "Users can create orders"
-  ON public.orders FOR INSERT
+DROP POLICY IF EXISTS "Users can create rentals" ON public.rentals;
+CREATE POLICY "Users can create rentals"
+  ON public.rentals FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users can update own orders" ON public.orders;
-CREATE POLICY "Users can update own orders"
-  ON public.orders FOR UPDATE
-  USING (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "Admins can view all orders" ON public.orders;
-CREATE POLICY "Admins can view all orders"
-  ON public.orders FOR SELECT
+DROP POLICY IF EXISTS "Admins can manage rentals" ON public.rentals;
+CREATE POLICY "Admins can manage rentals"
+  ON public.rentals FOR ALL
   USING (public.is_admin());
-
-DROP POLICY IF EXISTS "Admins can update orders" ON public.orders;
-CREATE POLICY "Admins can update orders"
-  ON public.orders FOR UPDATE
-  USING (public.is_admin());
-
--- 7. ORDER ITEMS
-CREATE TABLE IF NOT EXISTS public.order_items (
-  id BIGSERIAL PRIMARY KEY,
-  order_id BIGINT NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
-  product_id BIGINT NOT NULL REFERENCES public.products(id),
-  product_name TEXT NOT NULL,
-  type TEXT NOT NULL DEFAULT 'buy' CHECK (type = 'buy'),
-  quantity INTEGER NOT NULL DEFAULT 1,
-  unit_price DECIMAL(10,2) NOT NULL,
-  total_price DECIMAL(10,2) NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Users can view own order items" ON public.order_items;
-CREATE POLICY "Users can view own order items"
-  ON public.order_items FOR SELECT
-  USING (
-    EXISTS (SELECT 1 FROM public.orders WHERE id = order_id AND user_id = auth.uid())
-  );
-
-DROP POLICY IF EXISTS "Users can create order items" ON public.order_items;
-CREATE POLICY "Users can create order items"
-  ON public.order_items FOR INSERT
-  WITH CHECK (
-    EXISTS (SELECT 1 FROM public.orders WHERE id = order_id AND user_id = auth.uid())
-  );
-
-DROP POLICY IF EXISTS "Admins can view all order items" ON public.order_items;
-CREATE POLICY "Admins can view all order items"
-  ON public.order_items FOR SELECT
-  USING (public.is_admin());
-
--- 8. SETUP: Set first user as admin (run after your first signup)
--- UPDATE public.profiles SET role = 'admin'
--- WHERE id = (SELECT id FROM auth.users WHERE email = 'your-email@example.com');
 
 -- 9. APPOINTMENT SERVICES
 CREATE TABLE IF NOT EXISTS public.appointment_services (
@@ -373,6 +368,11 @@ CREATE TABLE IF NOT EXISTS public.appointments (
   notes TEXT,
   status TEXT NOT NULL DEFAULT 'pending'
     CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled')),
+  is_rental BOOLEAN NOT NULL DEFAULT false,
+  rental_id BIGINT,
+  admin_notes TEXT,
+  try_on_price DECIMAL(10,2),
+  try_on_only BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -446,7 +446,7 @@ $$;
 CREATE TABLE IF NOT EXISTS public.notifications (
   id BIGSERIAL PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id),
-  type TEXT NOT NULL DEFAULT 'general' CHECK (type IN ('general','order_update','payment_confirmed','appointment_update')),
+  type TEXT NOT NULL DEFAULT 'general' CHECK (type IN ('general','appointment_update')),
   title TEXT NOT NULL,
   message TEXT,
   link TEXT,
@@ -470,3 +470,69 @@ DROP POLICY IF EXISTS "Admins can create notifications" ON public.notifications;
 CREATE POLICY "Admins can create notifications"
   ON public.notifications FOR INSERT
   WITH CHECK (public.is_admin());
+
+DROP POLICY IF EXISTS "Users can delete own notifications" ON public.notifications;
+CREATE POLICY "Users can delete own notifications"
+  ON public.notifications FOR DELETE
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Admins can delete notifications" ON public.notifications;
+CREATE POLICY "Admins can delete notifications"
+  ON public.notifications FOR DELETE
+  USING (public.is_admin());
+
+-- 13. UPDATED_AT TRIGGERS (auto-update on each table)
+CREATE TRIGGER set_profiles_updated_at
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+CREATE TRIGGER set_categories_updated_at
+  BEFORE UPDATE ON public.categories
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+CREATE TRIGGER set_products_updated_at
+  BEFORE UPDATE ON public.products
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+CREATE TRIGGER set_store_settings_updated_at
+  BEFORE UPDATE ON public.store_settings
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+CREATE TRIGGER set_orders_updated_at
+  BEFORE UPDATE ON public.orders
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+CREATE TRIGGER set_rentals_updated_at
+  BEFORE UPDATE ON public.rentals
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+CREATE TRIGGER set_appointment_services_updated_at
+  BEFORE UPDATE ON public.appointment_services
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+CREATE TRIGGER set_appointments_updated_at
+  BEFORE UPDATE ON public.appointments
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+-- 14. INDEXES
+CREATE INDEX IF NOT EXISTS idx_rentals_user_id ON public.rentals(user_id);
+CREATE INDEX IF NOT EXISTS idx_rentals_product_id ON public.rentals(product_id);
+CREATE INDEX IF NOT EXISTS idx_rentals_status ON public.rentals(status);
+CREATE INDEX IF NOT EXISTS idx_products_category_id ON public.products(category_id);
+CREATE INDEX IF NOT EXISTS idx_products_is_active ON public.products(is_active);
+CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON public.order_items(product_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON public.notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_read ON public.notifications(read);
+CREATE INDEX IF NOT EXISTS idx_product_date_locks_product_id ON public.product_date_locks(product_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
+
+-- 15. FK constraints for rentals (added after referenced tables exist)
+ALTER TABLE public.appointments
+  ADD CONSTRAINT fk_appointments_rental
+  FOREIGN KEY (rental_id) REFERENCES public.rentals(id) ON DELETE SET NULL;
+
+ALTER TABLE public.rentals
+  ADD CONSTRAINT fk_rentals_appointment
+  FOREIGN KEY (appointment_id) REFERENCES public.appointments(id) ON DELETE SET NULL;
+
+

@@ -1,21 +1,29 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCategories, getProducts, getDashboardStats } from '@/lib/supabase/queries'
 import Link from 'next/link'
-import { Package, Tags, ShoppingCart, CalendarRange, DollarSign, TrendingUp, Clock } from 'lucide-react'
+import { Package, Tags, ShoppingCart, CalendarRange, DollarSign, TrendingUp, Clock, Undo2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { RevenueChart } from './revenue-chart'
-import { OrdersByStatusChart } from './orders-status-chart'
+import { RentalsByStatusChart } from './rentals-status-chart'
 import { BookingChart } from './booking-chart'
 import { BookingStatusChart } from './booking-status-chart'
 
-const statusLabels: Record<string, string> = {
-  pending: 'รอการชำระเงิน',
-  paid: 'ชำระแล้ว - รอยืนยัน',
-  confirmed: 'ยืนยันแล้ว',
-  shipped: 'จัดส่งแล้ว',
-  delivered: 'ได้รับแล้ว',
+const rentalStatusLabels: Record<string, string> = {
+  pending: 'รอดำเนินการ',
+  active: 'กำลังเช่า',
+  returned: 'คืนแล้ว',
+  late: 'เกินกำหนด',
   cancelled: 'ยกเลิก',
+}
+
+const rentalStatusColor: Record<string, string> = {
+  pending: 'bg-yellow-500',
+  active: 'bg-blue-500',
+  returned: 'bg-green-500',
+  late: 'bg-red-500',
+  cancelled: 'bg-gray-500',
 }
 
 export default async function AdminDashboard() {
@@ -31,22 +39,22 @@ export default async function AdminDashboard() {
 
   const statusCards = [
     {
-      title: 'คำสั่งซื้อทั้งหมด',
-      value: stats.totalOrders,
-      icon: ShoppingCart,
-      description: `${stats.todayOrders} วันนี้`,
+      title: 'รายการเช่าทั้งหมด',
+      value: stats.totalRentals,
+      icon: Undo2,
+      description: `${stats.todayRentals} วันนี้`,
     },
     {
       title: 'รายได้ทั้งหมด',
       value: `฿${stats.totalRevenue.toLocaleString()}`,
       icon: DollarSign,
-      description: 'ทั้งหมด (ไม่รวมที่ยกเลิก)',
+      description: 'จากราคาเช่า (ไม่รวมที่ยกเลิก)',
     },
     {
       title: 'รอดำเนินการ',
-      value: stats.pendingOrders,
+      value: stats.pendingRentals,
       icon: Clock,
-      description: 'รอการดำเนินการ',
+      description: 'รายการเช่าที่รอยืนยัน',
     },
     {
       title: 'สินค้าทั้งหมด',
@@ -89,17 +97,17 @@ export default async function AdminDashboard() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <RevenueChart data={stats.revenueByDay} />
-        <OrdersByStatusChart data={stats.ordersByStatus} />
+        <RentalsByStatusChart data={stats.rentalsByStatus} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">สินค้าขายดี</CardTitle>
+            <CardTitle className="text-lg">สินค้าที่เช่ามากที่สุด</CardTitle>
           </CardHeader>
           <CardContent>
             {stats.topProducts.length === 0 ? (
-              <p className="text-sm text-muted-foreground">ยังไม่มีรายการขาย</p>
+              <p className="text-sm text-muted-foreground">ยังไม่มีรายการเช่า</p>
             ) : (
               <div className="space-y-3">
                 {stats.topProducts.map((product, idx) => (
@@ -108,10 +116,7 @@ export default async function AdminDashboard() {
                       <span className="text-muted-foreground w-5">#{idx + 1}</span>
                       <span className="truncate max-w-[120px] sm:max-w-[200px]">{product.name}</span>
                     </div>
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                      <span>ขายแล้ว {product.qty}</span>
-                      <span>฿{product.revenue.toLocaleString()}</span>
-                    </div>
+                    <span className="text-muted-foreground">เช่าแล้ว {product.qty} ครั้ง</span>
                   </div>
                 ))}
               </div>
@@ -121,26 +126,32 @@ export default async function AdminDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">คำสั่งซื้อล่าสุด</CardTitle>
+            <CardTitle className="text-lg">รายการเช่าล่าสุด</CardTitle>
           </CardHeader>
           <CardContent>
-            {stats.recentOrders.length === 0 ? (
-              <p className="text-sm text-muted-foreground">ยังไม่มีคำสั่งซื้อ</p>
+            {stats.recentRentals.length === 0 ? (
+              <p className="text-sm text-muted-foreground">ยังไม่มีรายการเช่า</p>
             ) : (
               <div className="space-y-3">
-                {stats.recentOrders.map((order) => (
-                  <div key={order.id} className="flex items-center justify-between text-sm">
+                {stats.recentRentals.map((rental) => (
+                  <div key={rental.id} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
-                      <div className={`h-2 w-2 rounded-full ${
-                        order.status === 'cancelled' ? 'bg-red-500' :
-                        order.status === 'delivered' ? 'bg-green-500' :
-                        order.status === 'paid' ? 'bg-blue-500' :
-                        'bg-yellow-500'
-                      }`} />
-                      <span>#{order.id}</span>
-                      <span className="text-muted-foreground">{statusLabels[order.status] || order.status}</span>
+                      <div className={`h-2 w-2 rounded-full ${rentalStatusColor[rental.status] || 'bg-gray-500'}`} />
+                      <span>#{rental.id}</span>
+                      <span className="text-muted-foreground">
+                        {rental.product?.name || `#${rental.product_id}`}
+                      </span>
                     </div>
-                    <span>฿{Number(order.total_amount).toLocaleString()}</span>
+                    <div className="flex items-center gap-2">
+                      <Badge className={`${rental.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        rental.status === 'active' ? 'bg-blue-100 text-blue-800' :
+                        rental.status === 'returned' ? 'bg-green-100 text-green-800' :
+                        rental.status === 'late' ? 'bg-red-100 text-red-700' :
+                        'bg-gray-100 text-gray-800'} border-transparent text-xs`}>
+                        {rentalStatusLabels[rental.status] || rental.status}
+                      </Badge>
+                      <span className="text-muted-foreground">฿{Number(rental.rental_price).toLocaleString()}</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -167,7 +178,7 @@ export default async function AdminDashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">สต็อก (ซื้อ)</CardTitle>
+            <CardTitle className="text-sm font-medium">สต็อกสินค้า</CardTitle>
             <ShoppingCart size={18} className="text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -195,7 +206,7 @@ export default async function AdminDashboard() {
               <Link href="/admin/products/new">เพิ่มสินค้า</Link>
             </Button>
             <Button asChild variant="outline" className="w-full">
-              <Link href="/admin/orders">ดูคำสั่งซื้อ</Link>
+              <Link href="/admin/rentals">ดูรายการเช่า</Link>
             </Button>
           </CardContent>
         </Card>

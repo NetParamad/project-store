@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getProducts } from '@/lib/supabase/queries'
-import { Plus, Pencil, EyeOff, Package } from 'lucide-react'
+import { Plus, Pencil, EyeOff, Package, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DeleteProductButton } from './delete-product-button'
@@ -36,8 +36,8 @@ export default async function ProductsPage() {
             <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead className="px-4 py-3 font-medium">ID</TableHead>
               <TableHead className="px-4 py-3 font-medium">สินค้า</TableHead>
-              <TableHead className="px-4 py-3 font-medium">ราคา</TableHead>
-              <TableHead className="px-4 py-3 font-medium">สต็อก</TableHead>
+              <TableHead className="px-4 py-3 font-medium">ราคาเช่า</TableHead>
+              <TableHead className="px-4 py-3 font-medium">ค่าประกัน</TableHead>
               <TableHead className="px-4 py-3 font-medium">สถานะ</TableHead>
               <TableHead className="px-4 py-3 font-medium">ประเภท</TableHead>
               <TableHead className="px-4 py-3 text-right font-medium">จัดการ</TableHead>
@@ -46,7 +46,7 @@ export default async function ProductsPage() {
           <TableBody>
             {products.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   ไม่พบสินค้า
                 </TableCell>
               </TableRow>
@@ -75,35 +75,40 @@ export default async function ProductsPage() {
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-3">
-                    <span className="font-medium">
-                      ฿{Number(product.price).toLocaleString()}
+                    <span className="text-sm">
+                      ฿{Number(product.rental_price).toLocaleString()}
                     </span>
                   </TableCell>
                   <TableCell className="px-4 py-3">
                     <span className="text-sm">
-                      {product.stock_qty}
+                      ฿{Number(product.rental_deposit).toLocaleString()}
                     </span>
                   </TableCell>
-                  <TableCell className="px-4 py-3">
+                  <TableCell className="px-4 py-3 space-y-1">
+                    {product.is_locked ? (
+                      <Badge variant="destructive" className="whitespace-nowrap">
+                        <Lock size={14} className="inline mr-1" />ล็อค
+                      </Badge>
+                    ) : (
+                      <Badge variant="default" className="bg-green-600 whitespace-nowrap">
+                        ว่าง
+                      </Badge>
+                    )}
                     {product.is_active ? (
-                      <Badge variant="default" className="bg-green-600">
+                      <Badge variant="default" className="bg-green-600 block w-fit">
                         เปิดใช้งาน
                       </Badge>
                     ) : (
-                      <Badge variant="secondary">
+                      <Badge variant="secondary" className="block w-fit">
                         <EyeOff size={12} className="mr-1" />
                         ปิดใช้งาน
                       </Badge>
                     )}
                   </TableCell>
                   <TableCell className="px-4 py-3">
-                    {product.product_type === 'book' ? (
-                      <Badge variant="outline" className="border-blue-300 text-blue-700">จอง</Badge>
-                    ) : product.product_type === 'both' ? (
-                      <Badge variant="outline" className="border-green-300 text-green-700">ซื้อ+จอง</Badge>
-                    ) : (
-                      <Badge variant="secondary">ซื้อ</Badge>
-                    )}
+                    {product.product_type === 'book' && <Badge variant="outline" className="border-blue-300 text-blue-700">จอง</Badge>}
+                    {product.product_type === 'rent' && <Badge variant="outline" className="border-purple-300 text-purple-700">เช่า</Badge>}
+                    {product.product_type === 'both' && <Badge variant="outline" className="border-green-300 text-green-700">จอง+เช่า</Badge>}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">

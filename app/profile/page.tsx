@@ -137,12 +137,12 @@ export default function ProfilePage() {
       <Card>
         <CardContent className="p-0 divide-y">
         <Link
-          href="/orders"
+          href="/rentals"
           className="flex items-center justify-between p-4 hover:bg-accent transition-colors"
         >
           <div className="flex items-center gap-3">
             <ShoppingBag size={18} className="text-muted-foreground" />
-            <span className="text-sm font-medium">คำสั่งซื้อ</span>
+            <span className="text-sm font-medium">คำสั่งเช่า</span>
           </div>
           <ChevronRight size={16} className="text-muted-foreground" />
         </Link>

@@ -30,7 +30,20 @@ export function BookingStatusChart({ data }: Props) {
       value: count,
     }))
 
-  if (items.length === 0) return null
+  if (items.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="p-4 pb-0">
+          <CardTitle className="text-sm font-semibold">สถานะการจอง</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
+            ไม่มีข้อมูลสถานะการจอง
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card>

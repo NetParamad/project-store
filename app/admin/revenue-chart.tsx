@@ -9,7 +9,20 @@ interface Props {
 
 export function RevenueChart({ data }: Props) {
   const displayed = data.filter((d) => d.revenue > 0)
-  if (displayed.length === 0) return null
+  if (displayed.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="p-4 pb-0">
+          <CardTitle className="text-sm font-semibold">รายได้ (30 วันที่ผ่านมา)</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
+            ไม่มีข้อมูลรายได้ 30 วันที่ผ่านมา
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card>

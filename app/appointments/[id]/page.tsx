@@ -3,12 +3,29 @@
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { getAppointment } from '@/lib/supabase/queries'
-import { Loader2, ArrowLeft, CheckCircle, Circle } from 'lucide-react'
+import { getAppointment, updateAppointmentCustomer, getBookableProducts, getAppointmentsByDate } from '@/lib/supabase/queries'
+import { Loader2, ArrowLeft, CheckCircle, Circle, Pencil, FileText, ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 import Link from 'next/link'
-import type { Appointment, AppointmentService, Product } from '@/lib/db.types'
+import type { Appointment, AppointmentService, Product, ProductImage } from '@/lib/db.types'
 
 const statusSteps = ['pending', 'confirmed', 'completed']
 
@@ -17,6 +34,11 @@ const statusLabels: Record<string, string> = {
   confirmed: 'ยืนยันแล้ว',
   completed: 'เสร็จสิ้น',
   cancelled: 'ยกเลิก',
+}
+
+function formatDateThai(dateStr: string) {
+  const d = new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
 export default function AppointmentDetailPage() {
@@ -35,27 +57,119 @@ function AppointmentDetailContent() {
   const router = useRouter()
   const params = useParams()
   const searchParams = useSearchParams()
-  const [appointment, setAppointment] = useState<(Appointment & { service: AppointmentService } & { product: Product | null }) | null>(null)
+  const [appointment, setAppointment] = useState<(Appointment & { service: AppointmentService } & { product: (Product & { images: ProductImage[] }) | null }) | null>(null)
   const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState(false)
+  const [products, setProducts] = useState<Product[]>([])
+  const [occupiedSlots, setOccupiedSlots] = useState<{ time_slot: string; end_time: string; service_id: number }[]>([])
+
+  const [editDate, setEditDate] = useState('')
+  const [editTime, setEditTime] = useState('')
+  const [editProductId, setEditProductId] = useState('none')
+  const [editNotes, setEditNotes] = useState('')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     const fetch = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth?redirect=/appointments')
-        return
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/auth?redirect=/appointments')
+          return
+        }
+        const data = await getAppointment(supabase, Number(params.id))
+        if (!data || data.user_id !== user.id) {
+          router.push('/appointments')
+          return
+        }
+        setAppointment(data)
+
+        const prods = await getBookableProducts(supabase)
+        const available = prods.filter(p => !p.is_locked)
+        setProducts(available)
+      } catch (err) {
+        console.error('Failed to load appointment:', err)
+      } finally {
+        setLoading(false)
       }
-      const data = await getAppointment(supabase, Number(params.id))
-      if (!data || data.user_id !== user.id) {
-        router.push('/appointments')
-        return
-      }
-      setAppointment(data)
-      setLoading(false)
     }
     fetch()
   }, [router, params.id])
+
+  useEffect(() => {
+    if (!editDate) return
+    const fetch = async () => {
+      const supabase = createClient()
+      const slots = await getAppointmentsByDate(supabase, editDate)
+      setOccupiedSlots(slots)
+    }
+    fetch()
+  }, [editDate])
+
+  function openEditDialog() {
+    if (!appointment) return
+    setEditDate(appointment.appointment_date)
+    setEditTime(appointment.time_slot)
+    setEditProductId(appointment.product_id?.toString() ?? 'none')
+    setEditNotes(appointment.notes ?? '')
+    setEditing(true)
+  }
+
+  function generateTimeSlots(): string[] {
+    const allSlots: string[] = []
+    for (let h = 9; h < 18; h++) {
+      allSlots.push(`${h.toString().padStart(2, '0')}:00`)
+    }
+    return allSlots
+  }
+
+  function isSlotAvailable(slot: string): boolean {
+    if (!appointment) return true
+    const slotEnd = addMinutes(slot, appointment.service.duration_minutes)
+    return !occupiedSlots.some(occ => {
+      if (occ.service_id !== appointment.service.id) return false
+      return timesOverlap(slot, slotEnd, occ.time_slot, occ.end_time)
+    })
+  }
+
+  function addMinutes(time: string, mins: number): string {
+    const [h, m] = time.split(':').map(Number)
+    const total = h * 60 + m + mins
+    return `${Math.floor(total / 60).toString().padStart(2, '0')}:${(total % 60).toString().padStart(2, '0')}`
+  }
+
+  function timesOverlap(a1: string, a2: string, b1: string, b2: string): boolean {
+    return a1 < b2 && a2 > b1
+  }
+
+  async function handleSaveEdit() {
+    if (!appointment || !editDate || !editTime) return
+    setSaving(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const endTime = addMinutes(editTime, appointment.service.duration_minutes)
+      await updateAppointmentCustomer(supabase, appointment.id, user.id, {
+        appointment_date: editDate,
+        time_slot: editTime,
+        end_time: endTime,
+        product_id: editProductId && editProductId !== 'none' ? parseInt(editProductId) : null,
+        notes: editNotes || undefined,
+      })
+
+      const refreshed = await getAppointment(supabase, appointment.id)
+      if (refreshed) setAppointment(refreshed)
+      setEditing(false)
+    } catch (err) {
+      console.error(err)
+      alert('ไม่สามารถแก้ไขนัดหมายได้')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -68,9 +182,11 @@ function AppointmentDetailContent() {
   if (!appointment) return null
 
   const isCancelled = appointment.status === 'cancelled'
+  const isPending = appointment.status === 'pending'
   const currentStep = statusSteps.indexOf(appointment.status)
   const serviceName = appointment.service?.name || ''
   const productName = appointment.product ? appointment.product.name : null
+  const timeSlots = generateTimeSlots()
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-8">
@@ -83,7 +199,7 @@ function AppointmentDetailContent() {
         <div>
           <h1 className="text-2xl font-bold">รายละเอียดการนัดหมาย</h1>
           <p className="text-sm text-muted-foreground">
-            #{appointment.id} &middot; {appointment.appointment_date} {appointment.time_slot?.substring(0, 5)} &middot; {serviceName}
+            #{appointment.id} &middot; {formatDateThai(appointment.appointment_date)} {appointment.time_slot?.substring(0, 5)} &middot; {serviceName}
           </p>
         </div>
       </div>
@@ -113,6 +229,77 @@ function AppointmentDetailContent() {
         </div>
       )}
 
+      {isPending && (
+        <div className="flex flex-col items-end gap-2">
+          <p className="text-xs text-muted-foreground"><FileText size={14} className="inline mr-1" />คุณสามารถแก้ไขนัดหมายได้จนกว่า Admin จะยืนยัน</p>
+          <Dialog open={editing} onOpenChange={setEditing}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" onClick={openEditDialog}>
+                <Pencil size={14} className="mr-1" /> แก้ไขนัดหมาย
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>แก้ไขนัดหมาย</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label>วันที่</Label>
+                  <Input type="date" value={editDate} onChange={(e) => { setEditDate(e.target.value); setEditTime('') }}
+                    min={new Date().toISOString().split('T')[0]} />
+                </div>
+
+                {editDate && (
+                  <div className="space-y-2">
+                    <Label>เวลา</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {timeSlots.map(slot => {
+                        const available = isSlotAvailable(slot)
+                        return (
+                          <Button key={slot} type="button" disabled={!available} variant="outline"
+                            onClick={() => setEditTime(slot)}
+                            className={`text-sm ${editTime === slot ? 'bg-primary text-primary-foreground border-primary hover:bg-primary hover:text-primary-foreground' : !available ? 'bg-muted text-muted-foreground/50 border-muted' : ''}`}>
+                            {slot.substring(0, 5)}
+                          </Button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {appointment.service?.type === 'try_on' && (
+                  <div className="space-y-2">
+                    <Label>สินค้า</Label>
+                    <Select value={editProductId} onValueChange={setEditProductId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกสินค้า" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">—</SelectItem>
+                        {products.map(p => (
+                          <SelectItem key={p.id} value={p.id.toString()}>
+                            {p.name} {p.is_locked ? '(ล็อค)' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>หมายเหตุ</Label>
+                  <Textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} rows={3} />
+                </div>
+
+                <Button onClick={handleSaveEdit} disabled={saving || !editDate || !editTime} className="w-full">
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'บันทึก'}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
+
       <Card>
         <CardContent className="p-4 space-y-3 text-sm">
         <h2 className="font-semibold">รายละเอียดการนัดหมาย</h2>
@@ -122,14 +309,29 @@ function AppointmentDetailContent() {
             <p className="font-medium">{serviceName}</p>
           </div>
           {productName && (
-            <div>
+            <div className="sm:col-span-2">
               <span className="text-muted-foreground">สินค้า</span>
-              <p className="font-medium">{productName}</p>
+              <div className="flex items-center gap-3 mt-1">
+                <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-muted">
+                  {appointment.product && appointment.product.images.length > 0 ? (
+                    <img
+                      src={appointment.product.images.find(i => i.is_primary)?.url ?? appointment.product.images[0].url}
+                      alt={productName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <ImageIcon size={22} className="text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                <p className="font-medium">{productName}</p>
+              </div>
             </div>
           )}
           <div>
             <span className="text-muted-foreground">วันที่</span>
-            <p className="font-medium">{appointment.appointment_date}</p>
+            <p className="font-medium">{formatDateThai(appointment.appointment_date)}</p>
           </div>
           <div>
             <span className="text-muted-foreground">เวลา</span>
@@ -141,13 +343,19 @@ function AppointmentDetailContent() {
               <p className="font-medium">{appointment.phone}</p>
             </div>
           )}
+          {appointment.admin_notes && (
+            <div className="sm:col-span-2">
+              <span className="text-muted-foreground">หมายเหตุจากร้านค้า</span>
+              <p className="font-medium text-amber-700">{appointment.admin_notes}</p>
+            </div>
+          )}
         </div>
       </CardContent></Card>
 
       {appointment.notes && (
         <Card>
           <CardContent className="p-4 text-sm space-y-1">
-          <h2 className="font-semibold mb-1">หมายเหตุ</h2>
+          <h2 className="font-semibold mb-1">หมายเหตุของคุณ</h2>
           <p className="text-muted-foreground">{appointment.notes}</p>
         </CardContent></Card>
       )}

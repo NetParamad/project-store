@@ -22,6 +22,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 import { Trash2, Star, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -39,26 +40,30 @@ export function ProductForm({ categories, initialData }: Props) {
   const [images, setImages] = useState<ProductImage[]>(initialData?.images ?? [])
 
   const [form, setForm] = useState(() => initialData
-    ? {
-        category_id: initialData.category_id?.toString() ?? 'none',
-        name: initialData.name,
-        slug: initialData.slug,
-        description: initialData.description ?? '',
-        price: initialData.price.toString(),
-        stock_qty: initialData.stock_qty.toString(),
-        is_active: initialData.is_active,
-        product_type: initialData.product_type,
-      }
-    : {
-        category_id: 'none',
-        name: '',
-        slug: '',
-        description: '',
-        price: '',
-        stock_qty: '0',
-        is_active: true,
-        product_type: 'buy',
-      })
+      ? {
+          category_id: initialData.category_id?.toString() ?? 'none',
+          name: initialData.name,
+          slug: initialData.slug,
+          description: initialData.description ?? '',
+          is_active: initialData.is_active,
+          product_type: initialData.product_type,
+          rental_price: initialData.rental_price.toString(),
+          rental_deposit: initialData.rental_deposit.toString(),
+          is_locked: initialData.is_locked,
+          locked_reason: initialData.locked_reason ?? '',
+        }
+      : {
+          category_id: 'none',
+          name: '',
+          slug: '',
+          description: '',
+          is_active: true,
+          product_type: 'book',
+          rental_price: '0',
+          rental_deposit: '0',
+          is_locked: false,
+          locked_reason: '',
+        })
 
   function generateSlug(text: string) {
     return text
@@ -192,56 +197,73 @@ export function ProductForm({ categories, initialData }: Props) {
         name: form.name,
         slug: form.slug,
         description: form.description || null,
-        price: parseFloat(form.price) || 0,
-        stock_qty: parseInt(form.stock_qty) || 0,
         is_active: form.is_active,
         product_type: form.product_type,
+        rental_price: parseFloat(form.rental_price) || 0,
+        rental_deposit: parseFloat(form.rental_deposit) || 0,
+        is_locked: form.is_locked,
+        locked_reason: form.locked_reason || null,
       }
 
       if (isEditing && initialData) {
-        const { error } = await supabase
+        const { error: updateErr } = await supabase
           .from('products')
           .update({ ...payload, updated_at: new Date().toISOString() })
           .eq('id', initialData.id)
 
-        if (error) throw error
+        if (updateErr) {
+          console.error('Product update error:', updateErr, 'keys:', Object.keys(updateErr), 'json:', JSON.stringify(updateErr))
+          throw updateErr
+        }
 
         const existingImages = images.filter((img) => img.id > 0)
         const newImages = images.filter((img) => img.id < 0)
 
         for (const img of newImages) {
-          await supabase.from('product_images').insert({
+          const { error: imgErr } = await supabase.from('product_images').insert({
             product_id: initialData.id,
             url: img.url,
             is_primary: img.is_primary,
             sort_order: img.sort_order,
           })
+          if (imgErr) {
+            console.error('Image insert error:', imgErr, 'json:', JSON.stringify(imgErr))
+            throw imgErr
+          }
         }
 
         if (existingImages.length > 0 && !existingImages.some((i) => i.is_primary)) {
-          await supabase
+          const { error: primaryErr } = await supabase
             .from('product_images')
             .update({ is_primary: true })
             .eq('id', existingImages[0].id)
+          if (primaryErr) throw primaryErr
         }
 
         toast.success('อัปเดตสินค้าแล้ว!')
       } else {
-        const { data: product, error } = await supabase
+        const { data: product, error: insertErr } = await supabase
           .from('products')
           .insert(payload)
           .select()
           .single()
 
-        if (error) throw error
+        if (insertErr) {
+          console.error('Product insert error:', insertErr, 'keys:', Object.keys(insertErr), 'json:', JSON.stringify(insertErr))
+          throw insertErr
+        }
 
         for (const img of images) {
-          await supabase.from('product_images').insert({
+          const { error: imgErr } = await supabase.from('product_images').insert({
             product_id: product.id,
             url: img.url,
             is_primary: img.is_primary,
             sort_order: img.sort_order,
           })
+          if (imgErr) {
+            console.error('New image insert error:', imgErr, 'json:', JSON.stringify(imgErr))
+            throw imgErr
+          }
         }
 
         toast.success('สร้างสินค้าแล้ว!')
@@ -250,8 +272,16 @@ export function ProductForm({ categories, initialData }: Props) {
       router.push('/admin/products')
       router.refresh()
     } catch (err) {
-      console.error(err)
-      toast.error('เกิดข้อผิดพลาด')
+      console.error('Product form error:', err)
+      console.error('Error type:', typeof err, 'keys:', err ? Object.keys(err as object) : 'null', 'json:', JSON.stringify(err))
+      const msg = err && typeof err === 'object' ? String((err as Record<string, unknown>).message || (err as Record<string, unknown>).details || JSON.stringify(err) || '') : String(err)
+      if (msg.includes('check constraint') || msg.includes('product_type')) {
+        toast.error('ข้อผิดพลาด: ฐานข้อมูลยังไม่อนุญาตค่า product_type นี้ กรุณาเข้าไปที่ "ตั้งค่า" → "อัปเดตฐานข้อมูล" เพื่อแก้ไข')
+      } else if (msg) {
+        toast.error(msg)
+      } else {
+        toast.error('เกิดข้อผิดพลาด')
+      }
     } finally {
       setLoading(false)
     }
@@ -327,43 +357,10 @@ export function ProductForm({ categories, initialData }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>ราคา</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-             <Label htmlFor="price">ราคา (฿) <span className="text-destructive">*</span></Label>
-             <Input
-                id="price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={form.price}
-                onChange={(e) => setForm({ ...form, price: e.target.value })}
-                placeholder="0.00"
-                required
-             />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>สต็อกสินค้า</CardTitle>
+          <CardTitle>การจัดการ</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            <Label htmlFor="stock_qty">สต็อก <span className="text-destructive">*</span></Label>
-            <Input
-              id="stock_qty"
-              type="number"
-              min="0"
-              value={form.stock_qty}
-              onChange={(e) => setForm({ ...form, stock_qty: e.target.value })}
-              required
-            />
-          </div>
-
-          <div className="flex items-center gap-2 mt-4">
+          <div className="flex items-center gap-2">
             <Checkbox
               id="is_active"
               checked={form.is_active}
@@ -372,28 +369,80 @@ export function ProductForm({ categories, initialData }: Props) {
               }
             />
             <Label htmlFor="is_active" className="cursor-pointer">
-              สินค้าพร้อมขาย (แสดงต่อลูกค้า)
+              แสดงต่อลูกค้า
             </Label>
           </div>
 
           <div className="mt-4 space-y-2">
-            <Label>ประเภทสินค้า</Label>
+            <Label>ประเภท</Label>
             <Select
               value={form.product_type}
-              onValueChange={(value) =>
-                setForm({ ...form, product_type: value as 'buy' | 'book' | 'both' })
-              }
+              onValueChange={(v) => setForm({ ...form, product_type: v as 'book' | 'rent' | 'both' })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="เลือกประเภทสินค้า" />
+                <SelectValue placeholder="เลือกประเภท" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="buy">ซื้อ</SelectItem>
                 <SelectItem value="book">จอง</SelectItem>
-                <SelectItem value="both">ทั้งซื้อและจอง</SelectItem>
+                <SelectItem value="rent">เช่า</SelectItem>
+                <SelectItem value="both">จองและเช่า</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          <Separator className="my-4" />
+          <h3 className="text-sm font-medium">การเช่า</h3>
+          <div className="grid grid-cols-2 gap-4 mt-2">
+            <div className="space-y-2">
+              <Label htmlFor="rental_price">ราคาเช่า (บาท)</Label>
+              <Input
+                id="rental_price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.rental_price}
+                onChange={(e) => setForm({ ...form, rental_price: e.target.value })}
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rental_deposit">ค่าประกัน (บาท)</Label>
+              <Input
+                id="rental_deposit"
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.rental_deposit}
+                onChange={(e) => setForm({ ...form, rental_deposit: e.target.value })}
+                placeholder="0"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 mt-4">
+            <Checkbox
+              id="is_locked"
+              checked={form.is_locked}
+              onCheckedChange={(checked) =>
+                setForm({ ...form, is_locked: checked === true })
+              }
+            />
+            <Label htmlFor="is_locked" className="cursor-pointer">
+              ล็อคชุดนี้ (ไม่ให้ลูกค้าเลือก)
+            </Label>
+          </div>
+          {form.is_locked && (
+            <div className="mt-2 space-y-2">
+              <Label htmlFor="locked_reason">เหตุผลที่ล็อค</Label>
+              <Textarea
+                id="locked_reason"
+                value={form.locked_reason}
+                onChange={(e) => setForm({ ...form, locked_reason: e.target.value })}
+                placeholder="ชุดอยู่ระหว่างการซ่อม ฯลฯ"
+                rows={2}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 

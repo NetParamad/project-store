@@ -15,7 +15,7 @@ export default async function AboutPage() {
     {
       icon: Store,
       title: "สินค้าคุณภาพ",
-      desc: "เราเลือกสรรสินค้าคุณภาพดีมาให้คุณเลือกซื้อ",
+      desc: "เราเลือกสรรสินค้าคุณภาพดีมาให้คุณเลือกชม",
     },
     {
       icon: Shield,
@@ -30,7 +30,7 @@ export default async function AboutPage() {
     {
       icon: Calendar,
       title: "จองง่าย",
-      desc: "จองลองสินค้าหรือรับคำปรึกษาได้ในไม่กี่คลิก",
+      desc: "จอง-ลองสินค้าหรือรับคำปรึกษาได้ในไม่กี่คลิก",
     },
     {
       icon: Truck,
