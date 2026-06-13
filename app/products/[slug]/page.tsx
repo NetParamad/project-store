@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getProductBySlug } from '@/lib/supabase/queries'
+import { getProductsAvailability } from '@/lib/supabase/availability'
 import { ProductGallery } from './product-gallery'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -21,6 +22,12 @@ export default async function ProductDetailPage({
 
   const images = product.images ?? []
   const productName = product.name
+
+  const availabilityMap =
+    product.product_type === 'rent' || product.product_type === 'both'
+      ? await getProductsAvailability(supabase, [product.id])
+      : new Map<number, boolean>()
+  const isAvailable = availabilityMap.get(product.id)
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
@@ -46,13 +53,13 @@ export default async function ProductDetailPage({
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               {product.product_type === 'book' && (
-                <Badge variant="outline" className="border-blue-300 text-blue-700">จอง-ลอง</Badge>
+                <Badge variant="secondary">จอง</Badge>
               )}
               {product.product_type === 'rent' && (
-                <Badge variant="outline" className="border-purple-300 text-purple-700">เช่าชุด</Badge>
+                <Badge variant="secondary">เช่าชุด</Badge>
               )}
               {product.product_type === 'both' && (
-                <Badge variant="outline" className="border-green-300 text-green-700">จอง+เช่า</Badge>
+                <Badge variant="secondary">จอง+เช่า</Badge>
               )}
             </div>
             <h1 className="text-3xl font-bold">{productName}</h1>
@@ -61,9 +68,17 @@ export default async function ProductDetailPage({
           {(product.product_type === 'rent' || product.product_type === 'both') && (
             <Card className="border-blue-200 bg-blue-50">
               <CardContent className="p-4 space-y-2">
-                <h3 className="font-semibold text-blue-800">บริการเช่าชุด</h3>
+                <h3 className="font-semibold text-blue-800 flex items-center gap-2">
+                  บริการเช่าชุด
+                  {isAvailable === false && (
+                    <Badge variant="secondary">ไม่ว่าง</Badge>
+                  )}
+                  {isAvailable === true && (
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">พร้อมให้เช่า</Badge>
+                  )}
+                </h3>
                 <div className="text-sm text-blue-700 space-y-1">
-                  <p>ราคาเช่า: ฿{Number(product.rental_price).toLocaleString()}</p>
+                  <p>ราคาเช่า: ฿{Number(product.rental_price).toLocaleString()} / วัน</p>
                   {Number(product.rental_deposit) > 0 && (
                     <p>ค่าประกัน: ฿{Number(product.rental_deposit).toLocaleString()}</p>
                   )}

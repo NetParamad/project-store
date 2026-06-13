@@ -44,7 +44,7 @@ export async function Header() {
                 <Link href="/products/rent">เช่าชุด</Link>
               </Button>
               <Button asChild variant="outline" size="sm">
-                <Link href="/appointments/book">จอง-ลอง</Link>
+                <Link href="/appointments/book">จอง</Link>
               </Button>
             </div>
             <Suspense fallback={null}>

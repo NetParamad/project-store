@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getAdminRental, updateRentalStatus, updateRentalReturn, updateRental, createNotification } from '@/lib/supabase/queries'
-import { Loader2, ArrowLeft, Undo2, ImageIcon } from 'lucide-react'
+import { Loader2, ArrowLeft, ShoppingBagIcon, ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -336,7 +336,7 @@ export default function AdminRentalDetailPage() {
                   setReturnNotes('')
                   setReturnOpen(true)
                 }}>
-                  <Undo2 size={14} className="mr-1" /> คืนชุด
+                  <ShoppingBagIcon size={14} className="mr-1" /> คืนชุด
                 </Button>
               )}
 

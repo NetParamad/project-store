@@ -50,7 +50,7 @@ function RentalDetailContent() {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
-          router.push('/auth?redirect=/rentals')
+          router.push('/auth/login?redirect=/rentals')
           return
         }
         const data = await getRental(supabase, Number(params.id))
@@ -188,7 +188,11 @@ function RentalDetailContent() {
           </div>
           <div>
             <span className="text-muted-foreground">ราคาเช่า</span>
-            <p className="font-medium">฿{Number(rental.rental_price).toLocaleString()}</p>
+            <p className="font-medium">฿{Number(rental.rental_price).toLocaleString()} / วัน</p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">จำนวนวันที่เช่า</span>
+            <p className="font-medium">{(() => { const s = new Date(rental.rental_start_date + 'T00:00:00'); const e = new Date(rental.rental_end_date + 'T00:00:00'); return Math.ceil((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) })()}</p>
           </div>
           <div>
             <span className="text-muted-foreground">ค่าประกัน</span>
@@ -196,7 +200,7 @@ function RentalDetailContent() {
           </div>
           <div>
             <span className="text-muted-foreground">รวมทั้งสิ้น</span>
-            <p className="font-medium">฿{(Number(rental.rental_price) + Number(rental.deposit_amount)).toLocaleString()}</p>
+            <p className="font-medium">฿{(Number(rental.rental_price) * (() => { const s = new Date(rental.rental_start_date + 'T00:00:00'); const e = new Date(rental.rental_end_date + 'T00:00:00'); return Math.ceil((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) })() + Number(rental.deposit_amount)).toLocaleString()}</p>
           </div>
           {rental.returned_at && (
             <div>

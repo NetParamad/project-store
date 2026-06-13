@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getAllRentals } from '@/lib/supabase/queries'
-import { Loader2, ChevronRight, Undo2, ImageIcon } from 'lucide-react'
+import { Loader2, ChevronRight, ShoppingBagIcon, ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -68,7 +68,7 @@ export default function AdminRentalsPage() {
   if (rentals.length === 0) {
     return (
       <div className="text-center py-16 space-y-4">
-        <Undo2 size={48} className="mx-auto text-muted-foreground" />
+        <ShoppingBagIcon size={48} className="mx-auto text-muted-foreground" />
         <p className="text-muted-foreground">ยังไม่มีรายการเช่า</p>
       </div>
     )

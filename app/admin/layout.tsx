@@ -40,7 +40,7 @@ export default async function AdminLayout({
     .eq('role', 'admin')
 
   if (count === 0) {
-    redirect('/admin/setup')
+    redirect('/setup-admin')
   }
 
   redirect('/')

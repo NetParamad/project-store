@@ -106,9 +106,9 @@ export default async function ProductsPage() {
                     )}
                   </TableCell>
                   <TableCell className="px-4 py-3">
-                    {product.product_type === 'book' && <Badge variant="outline" className="border-blue-300 text-blue-700">จอง</Badge>}
-                    {product.product_type === 'rent' && <Badge variant="outline" className="border-purple-300 text-purple-700">เช่า</Badge>}
-                    {product.product_type === 'both' && <Badge variant="outline" className="border-green-300 text-green-700">จอง+เช่า</Badge>}
+                    {product.product_type === 'book' && <Badge variant="secondary">จอง</Badge>}
+                    {product.product_type === 'rent' && <Badge variant="secondary">เช่า</Badge>}
+                    {product.product_type === 'both' && <Badge variant="secondary">จอง+เช่า</Badge>}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">

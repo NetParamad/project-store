@@ -28,7 +28,7 @@ export default function ProfilePage() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        router.push('/auth?redirect=/profile')
+        router.push('/auth/login?redirect=/profile')
         return
       }
       const data = await getProfile(supabase)

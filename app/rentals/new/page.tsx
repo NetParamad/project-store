@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getRentableProducts } from '@/lib/supabase/queries'
+import { createRentalAction } from '@/app/actions/rentals'
 import { Loader2, ArrowLeft, ClipboardList, Wallet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -17,6 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import Link from 'next/link'
 import type { Product, ProductImage } from '@/lib/db.types'
 
@@ -40,10 +49,12 @@ function NewRentalContent() {
   const [products, setProducts] = useState<(Product & { images: ProductImage[] })[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
 
   const [selectedProductId, setSelectedProductId] = useState('')
   const [rentalStart, setRentalStart] = useState('')
   const [rentalEnd, setRentalEnd] = useState('')
+  const [phone, setPhone] = useState('')
   const [notes, setNotes] = useState('')
 
   const selectedProduct = products.find(p => p.id.toString() === selectedProductId)
@@ -54,7 +65,7 @@ function NewRentalContent() {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
-          router.push('/auth?redirect=/rentals/new')
+          router.push('/auth/login')
           return
         }
         const rentable = await getRentableProducts(supabase)
@@ -88,49 +99,37 @@ function NewRentalContent() {
     setSubmitting(true)
 
     try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
-
-      const days = Math.ceil((new Date(rentalEnd).getTime() - new Date(rentalStart).getTime()) / (1000 * 60 * 60 * 24))
+      const days = Math.ceil(
+        (new Date(rentalEnd).getTime() - new Date(rentalStart).getTime()) /
+          (1000 * 60 * 60 * 24)
+      )
       if (days > 30) {
         alert('ระยะเวลาเช่าสูงสุด 30 วัน')
         setSubmitting(false)
         return
       }
 
-      const { isProductAvailable, createRental, createNotification } = await import('@/lib/supabase/queries')
-      const available = await isProductAvailable(supabase, selectedProduct.id, rentalStart, rentalEnd)
-      if (!available) {
-        alert('ไม่สามารถเช่าได้ในช่วงวันที่เลือก เนื่องจากชุดนี้ถูกล็อควันจองในวันดังกล่าว')
-        setSubmitting(false)
-        return
-      }
-
-      const rental = await createRental(supabase, {
-        user_id: user.id,
+      const result = await createRentalAction({
         product_id: selectedProduct.id,
         rental_start_date: rentalStart,
         rental_end_date: rentalEnd,
         rental_price: Number(selectedProduct.rental_price),
         deposit_amount: Number(selectedProduct.rental_deposit),
+        phone,
         notes: notes || undefined,
+        product_name: selectedProduct.name,
       })
 
-      try {
-        await createNotification(supabase, {
-          user_id: user.id,
-          type: 'general',
-          title: 'คำขอเช่าชุดสำเร็จ!',
-          message: `คุณได้ขอเช่า ${selectedProduct.name} ตั้งแต่วันที่ ${new Date(rentalStart + 'T00:00:00').toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })} ถึง ${new Date(rentalEnd + 'T00:00:00').toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}`,
-          link: '/rentals',
-        })
-      } catch {} // best-effort
-
-      router.push(`/rentals/${rental.id}`)
+      router.push(`/rentals/${result.rentalId}`)
     } catch (err) {
-      console.error(err)
-      alert('ไม่สามารถสร้างคำขอเช่าได้')
+      const msg = (err as { message?: string })?.message
+      if (msg === 'Not authenticated') {
+        alert('กรุณาเข้าสู่ระบบก่อน')
+        router.push('/auth/login')
+      } else {
+        console.error('Rental create error:', msg || err)
+        setErrorMsg(msg || 'ไม่สามารถสร้างคำขอเช่าได้')
+      }
     } finally {
       setSubmitting(false)
     }
@@ -177,6 +176,27 @@ function NewRentalContent() {
           </div>
 
           {selectedProduct && (
+            <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/50">
+              <div className="w-16 h-16 rounded-md border bg-background overflow-hidden shrink-0">
+                {selectedProduct.images?.[0] && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={selectedProduct.images[0].url}
+                    alt={selectedProduct.name}
+                    className="h-full w-full object-cover"
+                  />
+                )}
+              </div>
+              <div className="min-w-0 text-sm">
+                <p className="font-medium truncate">{selectedProduct.name}</p>
+                <p className="text-muted-foreground">
+                  ฿{Number(selectedProduct.rental_price).toLocaleString()} /วัน
+                </p>
+              </div>
+            </div>
+          )}
+
+          {selectedProduct && (
             <div className="rounded-lg border bg-muted/30 p-3 space-y-1 text-sm">
               <p className="font-medium"><ClipboardList size={16} className="inline mr-1" />ข้อมูลสินค้า</p>
               <div className="grid grid-cols-2 gap-y-1 text-muted-foreground">
@@ -219,6 +239,19 @@ function NewRentalContent() {
           <CardContent className="p-4 space-y-4">
           <h2 className="font-semibold">ข้อมูลเพิ่มเติม</h2>
           <div className="space-y-2">
+            <Label htmlFor="phone">เบอร์โทร <span className="text-destructive">*</span></Label>
+            <Input
+              id="phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+              placeholder="เบอร์โทรศัพท์สำหรับติดต่อ"
+              pattern="[0-9]{10}"
+              maxLength={10}
+              required
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="notes">หมายเหตุ</Label>
             <Textarea
               id="notes"
@@ -232,11 +265,23 @@ function NewRentalContent() {
 
         <Button
           type="submit"
-          disabled={submitting || !selectedProductId || !rentalStart || !rentalEnd}
+          disabled={submitting || !selectedProductId || !rentalStart || !rentalEnd || phone.length !== 10}
           className="w-full"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'ยืนยันคำขอเช่า'}
         </Button>
+
+        <Dialog open={!!errorMsg} onOpenChange={(open) => { if (!open) setErrorMsg('') }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>เกิดข้อผิดพลาด</DialogTitle>
+              <DialogDescription>{errorMsg}</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setErrorMsg('')}>ตกลง</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </form>
     </div>
   )

@@ -13,7 +13,7 @@ export async function getProfile(client: SupabaseClient) {
     .eq('id', user.id)
     .single()
 
-  if (!data && error && error.code !== 'PGRST116') {
+  if (!data && error && error.code === 'PGRST116') {
     await client.from('profiles').insert({
       id: user.id,
       display_name: user.email,
@@ -545,16 +545,26 @@ export async function updateStoreSettings(
 
 // ─── Dashboard ───
 
+function calcRentalDays(r: { rental_start_date: string; rental_end_date: string }): number {
+  const s = new Date(r.rental_start_date + 'T00:00:00')
+  const e = new Date(r.rental_end_date + 'T00:00:00')
+  return Math.ceil((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24))
+}
+
+function rentalRevenue(r: { rental_price: number | string; rental_start_date: string; rental_end_date: string }): number {
+  return Number(r.rental_price) * calcRentalDays(r)
+}
+
 export async function getDashboardStats(client: SupabaseClient) {
   const { data: rentals } = await client
     .from('rentals')
-    .select('id, rental_price, deposit_amount, status, created_at, product_id, product:products(name)')
+    .select('id, rental_price, deposit_amount, status, created_at, rental_start_date, rental_end_date, product_id, product:products(name)')
     .order('created_at', { ascending: false })
 
   const totalRentals = rentals?.length ?? 0
   const totalRevenue = rentals
     ?.filter((r) => r.status !== 'cancelled')
-    .reduce((sum, r) => sum + Number(r.rental_price), 0) ?? 0
+    .reduce((sum, r) => sum + rentalRevenue(r), 0) ?? 0
   const todayRentals = rentals
     ?.filter((r) => new Date(r.created_at).toDateString() === new Date().toDateString())
     .length ?? 0
@@ -577,22 +587,23 @@ export async function getDashboardStats(client: SupabaseClient) {
     date,
     revenue: rentals
       ?.filter((r) => r.created_at?.startsWith(date) && r.status !== 'cancelled')
-      .reduce((sum, r) => sum + Number(r.rental_price), 0) ?? 0,
+      .reduce((sum, r) => sum + rentalRevenue(r), 0) ?? 0,
   }))
 
-  const productRentalCounts: Record<string, { count: number; name: string }> = {}
+  const productRentalCounts: Record<string, { count: number; name: string; revenue: number }> = {}
   rentals?.forEach((r) => {
     if (r.status === 'cancelled') return
     const p = r.product as { name?: string } | null
     const name = p?.name ?? `#${r.product_id}`
     if (!productRentalCounts[name]) {
-      productRentalCounts[name] = { count: 0, name }
+      productRentalCounts[name] = { count: 0, name, revenue: 0 }
     }
     productRentalCounts[name].count += 1
+    productRentalCounts[name].revenue += rentalRevenue(r)
   })
 
   const topProducts = Object.entries(productRentalCounts)
-    .map(([, data]) => ({ name: data.name, qty: data.count, revenue: 0 }))
+    .map(([, data]) => ({ name: data.name, qty: data.count, revenue: data.revenue }))
     .sort((a, b) => b.qty - a.qty)
     .slice(0, 10)
 
@@ -770,15 +781,25 @@ export async function isProductAvailable(
   endDate?: string
 ) {
   const end = endDate ?? startDate
-  const { data } = await client
-    .from('product_date_locks')
-    .select('id')
-    .eq('product_id', productId)
-    .lte('lock_start_date', end)
-    .gte('lock_end_date', startDate)
-    .limit(1)
+  const [locksR, rentalsR] = await Promise.all([
+    client
+      .from('product_date_locks')
+      .select('id')
+      .eq('product_id', productId)
+      .lte('lock_start_date', end)
+      .gte('lock_end_date', startDate)
+      .limit(1),
+    client
+      .from('rentals')
+      .select('id')
+      .eq('product_id', productId)
+      .not('status', 'in', '("cancelled")')
+      .lte('rental_start_date', end)
+      .gte('rental_end_date', startDate)
+      .limit(1),
+  ])
 
-  return (data?.length ?? 0) === 0
+  return (locksR.data?.length ?? 0) === 0 && (rentalsR.data?.length ?? 0) === 0
 }
 
 // ─── Rentals ───
@@ -789,7 +810,7 @@ export async function createRental(
     user_id: string
     product_id: number
     appointment_id?: number
-    order_id?: number
+    phone?: string
     rental_start_date: string
     rental_end_date: string
     rental_price: number
@@ -803,7 +824,7 @@ export async function createRental(
       user_id: input.user_id,
       product_id: input.product_id,
       appointment_id: input.appointment_id ?? null,
-      order_id: input.order_id ?? null,
+      phone: input.phone ?? null,
       rental_start_date: input.rental_start_date,
       rental_end_date: input.rental_end_date,
       rental_price: input.rental_price,

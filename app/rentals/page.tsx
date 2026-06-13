@@ -43,7 +43,7 @@ export default function RentalsPage() {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
-          router.push('/auth?redirect=/rentals')
+          router.push('/auth/login?redirect=/rentals')
           return
         }
         const data = await getUserRentals(supabase)

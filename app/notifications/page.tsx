@@ -20,7 +20,7 @@ export default function NotificationsPage() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        router.push('/auth?redirect=/notifications')
+        router.push('/auth/login?redirect=/notifications')
         return
       }
       const data = await getNotifications(supabase, user.id)

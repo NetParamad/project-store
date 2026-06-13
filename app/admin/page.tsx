@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCategories, getProducts, getDashboardStats } from '@/lib/supabase/queries'
 import Link from 'next/link'
-import { Package, Tags, ShoppingCart, CalendarRange, DollarSign, TrendingUp, Clock, Undo2 } from 'lucide-react'
+import { Package, Tags, ShoppingCart, CalendarRange, DollarSign, TrendingUp, Clock, ShoppingBagIcon } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -41,7 +41,7 @@ export default async function AdminDashboard() {
     {
       title: 'รายการเช่าทั้งหมด',
       value: stats.totalRentals,
-      icon: Undo2,
+      icon: ShoppingBagIcon,
       description: `${stats.todayRentals} วันนี้`,
     },
     {

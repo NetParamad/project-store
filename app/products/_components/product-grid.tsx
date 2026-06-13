@@ -1,12 +1,13 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getActiveProducts, getCategories } from '@/lib/supabase/queries'
+import { getProductsAvailability } from '@/lib/supabase/availability'
 import { ProductCard } from '@/components/product-card'
 import { CategoryFilter } from '../category-filter'
 import { Pagination } from '../pagination'
 
 interface Props {
-  searchParams: Promise<{ category?: string; search?: string; page?: string }>
+  searchParams: Promise<{ category?: string; search?: string; page?: string; available?: string }>
   typeFilter?: ('book' | 'rent' | 'both')[]
 }
 
@@ -18,6 +19,7 @@ export async function ProductGrid({ searchParams, typeFilter }: Props) {
   const categoryId = params.category ? parseInt(params.category) : undefined
   const search = params.search
   const page = params.page ? parseInt(params.page) : 1
+  const showAvailableOnly = params.available === 'true'
 
   const result = await getActiveProducts(supabase, {
     category_id: isNaN(categoryId ?? 0) ? undefined : categoryId,
@@ -27,6 +29,18 @@ export async function ProductGrid({ searchParams, typeFilter }: Props) {
     product_type: typeFilter,
   })
 
+  const productIds = result.products.map((p) => p.id)
+  const availabilityMap = productIds.length > 0
+    ? await getProductsAvailability(supabase, productIds)
+    : new Map<number, boolean>()
+
+  let filteredProducts = result.products
+  if (showAvailableOnly) {
+    filteredProducts = result.products.filter(
+      (p) => availabilityMap.get(p.id) !== false
+    )
+  }
+
   return (
     <div className="flex gap-8">
       <aside className="hidden md:block w-48 shrink-0">
@@ -34,7 +48,7 @@ export async function ProductGrid({ searchParams, typeFilter }: Props) {
       </aside>
 
       <div className="flex-1 space-y-6">
-        {result.products.length === 0 ? (
+        {filteredProducts.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
             <p className="text-lg">ไม่พบสินค้า</p>
             {(search || categoryId) && (
@@ -49,8 +63,12 @@ export async function ProductGrid({ searchParams, typeFilter }: Props) {
         ) : (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {result.products.map((product) => (
-                <ProductCard key={product.id} product={product} />
+              {filteredProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  available={availabilityMap.get(product.id)}
+                />
               ))}
             </div>
 

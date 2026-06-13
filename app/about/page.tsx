@@ -30,7 +30,7 @@ export default async function AboutPage() {
     {
       icon: Calendar,
       title: "จองง่าย",
-      desc: "จอง-ลองสินค้าหรือรับคำปรึกษาได้ในไม่กี่คลิก",
+      desc: "จองสินค้าหรือรับคำปรึกษาได้ในไม่กี่คลิก",
     },
     {
       icon: Truck,

@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getActiveAppointmentServices, getAppointmentsByDate, getBookableProducts } from '@/lib/supabase/queries'
+import { createAppointmentAction } from '@/app/actions/appointments'
 import { Loader2, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -59,7 +60,7 @@ function BookAppointmentContent() {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
-          router.push('/auth?redirect=/appointments/book')
+          router.push('/auth/login')
           return
         }
         const [svc, bookable] = await Promise.all([
@@ -136,15 +137,9 @@ function BookAppointmentContent() {
     setSubmitting(true)
 
     try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
-
       const endTime = addMinutes(selectedTime, selectedService.duration_minutes)
-      const { createAppointment, createNotification } = await import('@/lib/supabase/queries')
 
-      await createAppointment(supabase, {
-        user_id: user.id,
+      await createAppointmentAction({
         service_id: selectedService.id,
         product_id: selectedProductId && selectedProductId !== 'none' ? parseInt(selectedProductId) : null,
         appointment_date: selectedDate,
@@ -154,20 +149,16 @@ function BookAppointmentContent() {
         notes: notes || undefined,
       })
 
-      try {
-        await createNotification(supabase, {
-          user_id: user.id,
-          type: 'appointment_update',
-          title: 'จองนัดหมายสำเร็จ!',
-          message: `คุณได้จอง ${selectedService.name} ในวันที่ ${new Date(selectedDate + 'T00:00:00').toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })} เวลา ${selectedTime.substring(0, 5)}`,
-          link: '/appointments',
-        })
-      } catch {} // best-effort
-
       router.push('/appointments?booked=1')
     } catch (err) {
-      console.error(err)
-      alert('Failed to book appointment')
+      const msg = (err as { message?: string })?.message
+      if (msg === 'Not authenticated') {
+        alert('กรุณาเข้าสู่ระบบก่อน')
+        router.push('/auth/login')
+      } else {
+        console.error(err)
+        alert(msg || 'ไม่สามารถจองนัดหมายได้')
+      }
     } finally {
       setSubmitting(false)
     }
@@ -227,6 +218,28 @@ function BookAppointmentContent() {
                   ))}
                 </SelectContent>
               </Select>
+              {selectedProduct && selectedProductId !== 'none' && (
+                <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/50">
+                  <div className="w-16 h-16 rounded-md border bg-background overflow-hidden shrink-0">
+                    {selectedProduct.images?.[0] && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={selectedProduct.images[0].url}
+                        alt={selectedProduct.name}
+                        className="h-full w-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm truncate">{selectedProduct.name}</p>
+                    {selectedProduct.rental_price > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        ราคาเช่า {selectedProduct.rental_price.toLocaleString()} บาท
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

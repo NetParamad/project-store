@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 
 const tabs = [
   { label: 'ทั้งหมด', href: '/products' },
-  { label: 'จอง-ลอง', href: '/products/book' },
+  { label: 'จอง', href: '/products/book' },
   { label: 'เช่าชุด', href: '/products/rent' },
 ]
 

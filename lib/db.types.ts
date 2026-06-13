@@ -84,6 +84,7 @@ export interface Rental {
   user_id: string
   product_id: number
   appointment_id: number | null
+  phone: string | null
   rental_start_date: string
   rental_end_date: string
   rental_price: number

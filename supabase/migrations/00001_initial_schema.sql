@@ -292,6 +292,7 @@ CREATE TABLE IF NOT EXISTS public.rentals (
   user_id UUID NOT NULL REFERENCES auth.users(id),
   product_id BIGINT NOT NULL REFERENCES public.products(id),
   appointment_id BIGINT,
+  phone TEXT,
   rental_start_date DATE NOT NULL,
   rental_end_date DATE NOT NULL,
   rental_price DECIMAL(10,2) NOT NULL DEFAULT 0,
@@ -446,7 +447,7 @@ $$;
 CREATE TABLE IF NOT EXISTS public.notifications (
   id BIGSERIAL PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id),
-  type TEXT NOT NULL DEFAULT 'general' CHECK (type IN ('general','appointment_update')),
+  type TEXT NOT NULL DEFAULT 'general' CHECK (type IN ('general','appointment_update','order_update','payment_confirmed')),
   title TEXT NOT NULL,
   message TEXT,
   link TEXT,
@@ -465,6 +466,11 @@ DROP POLICY IF EXISTS "Users can update own notifications" ON public.notificatio
 CREATE POLICY "Users can update own notifications"
   ON public.notifications FOR UPDATE
   USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can create own notifications" ON public.notifications;
+CREATE POLICY "Users can create own notifications"
+  ON public.notifications FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Admins can create notifications" ON public.notifications;
 CREATE POLICY "Admins can create notifications"
@@ -498,10 +504,6 @@ CREATE TRIGGER set_store_settings_updated_at
   BEFORE UPDATE ON public.store_settings
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
-CREATE TRIGGER set_orders_updated_at
-  BEFORE UPDATE ON public.orders
-  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-
 CREATE TRIGGER set_rentals_updated_at
   BEFORE UPDATE ON public.rentals
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
@@ -520,7 +522,6 @@ CREATE INDEX IF NOT EXISTS idx_rentals_product_id ON public.rentals(product_id);
 CREATE INDEX IF NOT EXISTS idx_rentals_status ON public.rentals(status);
 CREATE INDEX IF NOT EXISTS idx_products_category_id ON public.products(category_id);
 CREATE INDEX IF NOT EXISTS idx_products_is_active ON public.products(is_active);
-CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON public.order_items(product_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON public.notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_read ON public.notifications(read);
 CREATE INDEX IF NOT EXISTS idx_product_date_locks_product_id ON public.product_date_locks(product_id);

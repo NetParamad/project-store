@@ -36,7 +36,7 @@ export default function AppointmentsPage() {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
-          router.push('/auth?redirect=/appointments')
+          router.push('/auth/login?redirect=/appointments')
           return
         }
         const data = await getUserAppointments(supabase)
