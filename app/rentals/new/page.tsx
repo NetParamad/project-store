@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { getRentableProducts } from '@/lib/supabase/queries'
+import { getAllActiveProducts } from '@/lib/supabase/queries'
 import { createRentalAction } from '@/app/actions/rentals'
 import { Loader2, ArrowLeft, ClipboardList, Wallet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { DatePicker } from '@/components/date-picker'
 import {
   Select,
   SelectContent,
@@ -56,6 +57,10 @@ function NewRentalContent() {
   const [rentalEnd, setRentalEnd] = useState('')
   const [phone, setPhone] = useState('')
   const [notes, setNotes] = useState('')
+  const [deliveryMethod, setDeliveryMethod] = useState<'pickup' | 'delivery'>('pickup')
+  const [deliveryName, setDeliveryName] = useState('')
+  const [deliveryAddress, setDeliveryAddress] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const selectedProduct = products.find(p => p.id.toString() === selectedProductId)
 
@@ -68,8 +73,8 @@ function NewRentalContent() {
           router.push('/auth/login')
           return
         }
-        const rentable = await getRentableProducts(supabase)
-        const available = rentable.filter(p => !p.is_locked)
+        const allProducts = await getAllActiveProducts(supabase)
+        const available = allProducts.filter(p => !p.is_locked)
         setProducts(available)
 
         if (preselectProductSlug) {
@@ -95,44 +100,48 @@ function NewRentalContent() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!selectedProduct || !rentalStart || !rentalEnd) return
-    setSubmitting(true)
+    const newErrors: Record<string, string> = {}
+      if (!selectedProductId) newErrors.product = 'กรุณาเลือกสินค้า'
+      if (!selectedProduct) newErrors.product = 'กรุณาเลือกสินค้า'
+      if (!rentalStart) newErrors.rentalStart = 'กรุณาเลือกวันที่เริ่มเช่า'
+      if (!rentalEnd) newErrors.rentalEnd = 'กรุณาเลือกวันที่สิ้นสุดเช่า'
+      if (!phone || !/^\d{10}$/.test(phone)) newErrors.phone = 'กรุณากรอกเบอร์โทรศัพท์ 10 หลัก'
+      if (rentalStart && rentalEnd && new Date(rentalEnd) <= new Date(rentalStart)) newErrors.rentalEnd = 'วันที่สิ้นสุดต้องมากกว่าวันที่เริ่มต้น'
+      if (deliveryMethod === 'delivery') {
+        if (!deliveryName.trim()) newErrors.deliveryName = 'กรุณากรอกชื่อผู้รับ'
+        if (!deliveryAddress.trim()) newErrors.deliveryAddress = 'กรุณากรอกที่อยู่จัดส่ง'
+      }
+      if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return }
+      setErrors({})
+      setSubmitting(true)
 
-    try {
-      const days = Math.ceil(
-        (new Date(rentalEnd).getTime() - new Date(rentalStart).getTime()) /
-          (1000 * 60 * 60 * 24)
-      )
-      if (days > 30) {
-        alert('ระยะเวลาเช่าสูงสุด 30 วัน')
+      try {
+        const result = await createRentalAction({
+          product_id: selectedProduct!.id,
+          rental_start_date: rentalStart,
+          rental_end_date: rentalEnd,
+          rental_price: Number(selectedProduct!.rental_price),
+          deposit_amount: Number(selectedProduct!.rental_deposit),
+          phone,
+          notes: notes || undefined,
+          product_name: selectedProduct!.name,
+          delivery_name: deliveryMethod === 'delivery' ? deliveryName.trim() : undefined,
+          delivery_address: deliveryMethod === 'delivery' ? deliveryAddress.trim() : undefined,
+        })
+
+        router.push(`/rentals/${result.rentalId}`)
+      } catch (err) {
+        const msg = typeof err === 'string' ? err : (err as { message?: string })?.message || ''
+        if (msg === 'Not authenticated') {
+          alert('กรุณาเข้าสู่ระบบก่อน')
+          router.push('/auth/login')
+        } else {
+          console.error('Rental create error:', err)
+          setErrorMsg(msg || 'ไม่สามารถสร้างคำขอเช่าได้')
+        }
+      } finally {
         setSubmitting(false)
-        return
       }
-
-      const result = await createRentalAction({
-        product_id: selectedProduct.id,
-        rental_start_date: rentalStart,
-        rental_end_date: rentalEnd,
-        rental_price: Number(selectedProduct.rental_price),
-        deposit_amount: Number(selectedProduct.rental_deposit),
-        phone,
-        notes: notes || undefined,
-        product_name: selectedProduct.name,
-      })
-
-      router.push(`/rentals/${result.rentalId}`)
-    } catch (err) {
-      const msg = (err as { message?: string })?.message
-      if (msg === 'Not authenticated') {
-        alert('กรุณาเข้าสู่ระบบก่อน')
-        router.push('/auth/login')
-      } else {
-        console.error('Rental create error:', msg || err)
-        setErrorMsg(msg || 'ไม่สามารถสร้างคำขอเช่าได้')
-      }
-    } finally {
-      setSubmitting(false)
-    }
   }
 
   if (loading) {
@@ -157,12 +166,19 @@ function NewRentalContent() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4 text-sm text-blue-800 space-y-1">
+            <p>• เช่าชุดได้ตั้งแต่วันที่ต้องการ จำนวนวันเช่าสูงสุด 30 วัน</p>
+            <p>• ค่าประกันจะคืนเมื่อคืนชุดในสภาพดี</p>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardContent className="p-4 space-y-4">
           <div className="space-y-2">
             <Label>เลือกสินค้า <span className="text-destructive">*</span></Label>
-            <Select value={selectedProductId} onValueChange={(v) => { setSelectedProductId(v); setRentalStart(''); setRentalEnd('') }}>
-              <SelectTrigger>
+            <Select value={selectedProductId} onValueChange={(v) => { setSelectedProductId(v); setRentalStart(''); setRentalEnd(''); setErrors((prev) => ({ ...prev, product: '' })) }}>
+              <SelectTrigger aria-invalid={!!errors.product}>
                 <SelectValue placeholder="เลือกสินค้า" />
               </SelectTrigger>
               <SelectContent>
@@ -173,6 +189,7 @@ function NewRentalContent() {
                 ))}
               </SelectContent>
             </Select>
+            {errors.product && <p className="text-sm text-destructive">{errors.product}</p>}
           </div>
 
           {selectedProduct && (
@@ -207,17 +224,21 @@ function NewRentalContent() {
           )}
 
           {selectedProduct && (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>วันที่เริ่มเช่า <span className="text-destructive">*</span></Label>
-                <Input type="date" value={rentalStart} onChange={(e) => setRentalStart(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]} required />
-              </div>
-              <div className="space-y-1">
-                <Label>วันที่สิ้นสุดเช่า <span className="text-destructive">*</span></Label>
-                <Input type="date" value={rentalEnd} onChange={(e) => setRentalEnd(e.target.value)}
-                  min={rentalStart || new Date().toISOString().split('T')[0]} required />
-              </div>
+            <div className="space-y-1">
+              <Label>เลือกวันที่เช่า <span className="text-destructive">*</span></Label>
+              <DatePicker
+                mode="range"
+                valueStart={rentalStart}
+                valueEnd={rentalEnd}
+                onRangeChange={(start, end) => {
+                  setRentalStart(start);
+                  setRentalEnd(end);
+                  setErrors((prev) => ({ ...prev, startDate: '', endDate: '' }));
+                }}
+                min={new Date().toISOString().split('T')[0]}
+              />
+              {errors.startDate && <p className="text-sm text-destructive">{errors.startDate}</p>}
+              {errors.endDate && <p className="text-sm text-destructive">{errors.endDate}</p>}
             </div>
           )}
 
@@ -237,19 +258,72 @@ function NewRentalContent() {
 
         <Card>
           <CardContent className="p-4 space-y-4">
-          <h2 className="font-semibold">ข้อมูลเพิ่มเติม</h2>
+          <h2 className="font-semibold">วิธีการรับชุด</h2>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant={deliveryMethod === 'pickup' ? 'default' : 'outline'}
+              onClick={() => setDeliveryMethod('pickup')}
+              className="flex-1"
+            >
+              มารับเอง
+            </Button>
+            <Button
+              type="button"
+              variant={deliveryMethod === 'delivery' ? 'default' : 'outline'}
+              onClick={() => setDeliveryMethod('delivery')}
+              className="flex-1"
+            >
+              ให้ส่ง
+            </Button>
+          </div>
+
+          {deliveryMethod === 'delivery' && (
+            <div className="space-y-3 pt-2 border-t">
+              <div className="space-y-2">
+                <Label htmlFor="deliveryName">ชื่อผู้รับ <span className="text-destructive">*</span></Label>
+                <Input
+                  id="deliveryName"
+                  value={deliveryName}
+                  onChange={(e) => { setDeliveryName(e.target.value); setErrors((prev) => ({ ...prev, deliveryName: '' })) }}
+                  placeholder="ชื่อ-นามสกุล"
+                  aria-invalid={!!errors.deliveryName}
+                />
+                {errors.deliveryName && <p className="text-sm text-destructive">{errors.deliveryName}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="deliveryAddress">ที่อยู่จัดส่ง <span className="text-destructive">*</span></Label>
+                <Textarea
+                  id="deliveryAddress"
+                  value={deliveryAddress}
+                  onChange={(e) => { setDeliveryAddress(e.target.value); setErrors((prev) => ({ ...prev, deliveryAddress: '' })) }}
+                  placeholder="บ้านเลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด รหัสไปรษณีย์"
+                  rows={4}
+                  aria-invalid={!!errors.deliveryAddress}
+                />
+                {errors.deliveryAddress && <p className="text-sm text-destructive">{errors.deliveryAddress}</p>}
+              </div>
+            </div>
+          )}
+        </CardContent></Card>
+
+        <Card>
+          <CardContent className="p-4 space-y-4">
+          <h2 className="font-semibold">ข้อมูลติดต่อ</h2>
           <div className="space-y-2">
             <Label htmlFor="phone">เบอร์โทร <span className="text-destructive">*</span></Label>
             <Input
               id="phone"
               type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+              onChange={(e) => { setPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setErrors((prev) => ({ ...prev, phone: '' })) }}
               placeholder="เบอร์โทรศัพท์สำหรับติดต่อ"
               pattern="[0-9]{10}"
               maxLength={10}
               required
+              aria-invalid={!!errors.phone}
             />
+            {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="notes">หมายเหตุ</Label>
@@ -265,7 +339,7 @@ function NewRentalContent() {
 
         <Button
           type="submit"
-          disabled={submitting || !selectedProductId || !rentalStart || !rentalEnd || phone.length !== 10}
+          disabled={submitting}
           className="w-full"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'ยืนยันคำขอเช่า'}

@@ -21,11 +21,16 @@ export function ForgotPasswordForm({
 }: React.ComponentPropsWithoutRef<"div">) {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    const newErrors: Record<string, string> = {}
+    if (!email) newErrors.email = 'กรุณากรอกอีเมล'
+    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return }
+    setErrors({})
     const supabase = createClient();
     setIsLoading(true);
     setError(null);
@@ -77,8 +82,10 @@ export function ForgotPasswordForm({
                     placeholder="you@example.com"
                     required
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); setErrors((prev) => ({ ...prev, email: '' })) }}
+                    aria-invalid={!!errors.email}
                   />
+                  {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
                 </div>
                 {error && <p className="text-sm text-red-500">{error}</p>}
                 <Button type="submit" className="w-full" disabled={isLoading}>

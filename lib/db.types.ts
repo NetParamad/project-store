@@ -29,7 +29,6 @@ export interface Product {
   price: number
   stock_qty: number
   is_active: boolean
-  product_type: 'book' | 'rent' | 'both'
   rental_price: number
   rental_deposit: number
   is_locked: boolean
@@ -95,6 +94,8 @@ export interface Rental {
   return_penalty: number | null
   return_notes: string | null
   notes: string | null
+  delivery_name: string | null
+  delivery_address: string | null
   created_at: string
   updated_at: string
 }

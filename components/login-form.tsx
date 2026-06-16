@@ -24,10 +24,16 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    const newErrors: Record<string, string> = {}
+    if (!email) newErrors.email = 'กรุณากรอกอีเมล'
+    if (!password) newErrors.password = 'กรุณากรอกรหัสผ่าน'
+    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return }
+    setErrors({})
     const supabase = createClient();
     setIsLoading(true);
     setError(null);
@@ -85,8 +91,10 @@ export function LoginForm({
                   placeholder="you@example.com"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); setErrors((prev) => ({ ...prev, email: '' })) }}
+                  aria-invalid={!!errors.email}
                 />
+                {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
@@ -103,8 +111,10 @@ export function LoginForm({
                   type="password"
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); setErrors((prev) => ({ ...prev, password: '' })) }}
+                  aria-invalid={!!errors.password}
                 />
+                {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
               <Button type="submit" className="w-full" disabled={isLoading}>

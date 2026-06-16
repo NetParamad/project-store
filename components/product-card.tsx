@@ -32,23 +32,12 @@ export async function ProductCard({ product, available }: Props) {
           </div>
         )}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
-          <div className="flex flex-wrap gap-1">
-            {product.product_type === 'book' && (
-              <Badge variant="secondary">จอง</Badge>
-            )}
-            {product.product_type === 'rent' && (
-              <Badge variant="secondary">เช่าชุด</Badge>
-            )}
-            {product.product_type === 'both' && (
-              <Badge variant="secondary">จอง+เช่า</Badge>
-            )}
-          </div>
           {available !== undefined && <AvailabilityBadge available={available} />}
         </div>
       </div>
       <div className="p-3 space-y-1.5">
         <h3 className="font-medium text-sm line-clamp-1">{displayName}</h3>
-        {(product.product_type === 'rent' || product.product_type === 'both') && Number(product.rental_price) > 0 && (
+        {Number(product.rental_price) > 0 && (
           <p className="text-xs text-muted-foreground">
             เช่า <span className="font-medium text-foreground">฿{Number(product.rental_price).toLocaleString()}</span>
             {Number(product.rental_deposit) > 0 && (

@@ -25,19 +25,21 @@ export function SignUpForm({
   const [repeatPassword, setRepeatPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const router = useRouter();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    const newErrors: Record<string, string> = {}
+    if (!email) newErrors.email = 'กรุณากรอกอีเมล'
+    if (!password) newErrors.password = 'กรุณากรอกรหัสผ่าน'
+    if (!repeatPassword) newErrors.repeatPassword = 'กรุณากรอกรหัสผ่านอีกครั้ง'
+    else if (password !== repeatPassword) newErrors.repeatPassword = 'รหัสผ่านไม่ตรงกัน'
+    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return }
+    setErrors({})
     const supabase = createClient();
     setIsLoading(true);
     setError(null);
-
-    if (password !== repeatPassword) {
-      setError("รหัสผ่านไม่ตรงกัน");
-      setIsLoading(false);
-      return;
-    }
 
     try {
       const { error } = await supabase.auth.signUp({
@@ -93,8 +95,10 @@ export function SignUpForm({
                   placeholder="you@example.com"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); setErrors((prev) => ({ ...prev, email: '' })) }}
+                  aria-invalid={!!errors.email}
                 />
+                {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
@@ -105,8 +109,10 @@ export function SignUpForm({
                   type="password"
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); setErrors((prev) => ({ ...prev, password: '' })) }}
+                  aria-invalid={!!errors.password}
                 />
+                {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
@@ -117,8 +123,10 @@ export function SignUpForm({
                   type="password"
                   required
                   value={repeatPassword}
-                  onChange={(e) => setRepeatPassword(e.target.value)}
+                  onChange={(e) => { setRepeatPassword(e.target.value); setErrors((prev) => ({ ...prev, repeatPassword: '' })) }}
+                  aria-invalid={!!errors.repeatPassword}
                 />
+                {errors.repeatPassword && <p className="text-sm text-destructive">{errors.repeatPassword}</p>}
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
               <Button type="submit" className="w-full" disabled={isLoading}>

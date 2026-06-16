@@ -112,7 +112,7 @@ export default function AdminAppointmentsPage() {
                     <Badge className={`${statusColor(apt.status)} border-transparent`}>
                       {aptStatusLabels[apt.status] || apt.status}
                     </Badge>
-                  </TableCell>
+                  </TableCell>  
                   <TableCell className="px-4 py-3 text-right">
                     <Button asChild variant="ghost" size="sm">
                       <Link href={`/admin/appointments/${apt.id}`}>

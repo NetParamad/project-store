@@ -41,7 +41,7 @@ export async function Header() {
           <div className="flex items-center gap-1 sm:gap-2">
             <div className="hidden md:flex items-center gap-2 mr-2">
               <Button asChild variant="default" size="sm">
-                <Link href="/products/rent">เช่าชุด</Link>
+                <Link href="/rentals/new">เช่าชุด</Link>
               </Button>
               <Button asChild variant="outline" size="sm">
                 <Link href="/appointments/book">จอง</Link>

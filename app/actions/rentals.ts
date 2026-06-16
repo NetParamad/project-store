@@ -15,6 +15,8 @@ export async function createRentalAction(input: {
   phone: string
   notes?: string
   product_name: string
+  delivery_name?: string
+  delivery_address?: string
 }) {
   const supabase = await createClient()
 
@@ -35,7 +37,7 @@ export async function createRentalAction(input: {
       (1000 * 60 * 60 * 24)
   )
   if (days > MAX_RENTAL_DAYS) throw new Error('ระยะเวลาเช่าสูงสุด 30 วัน')
-  if (days < 0) throw new Error('วันที่สิ้นสุดต้องมากกว่าวันที่เริ่มต้น')
+  if (days <= 0) throw new Error('วันที่สิ้นสุดต้องมากกว่าวันที่เริ่มต้น')
 
   const product = await getProduct(supabase, input.product_id)
   if (!product) throw new Error('ไม่พบสินค้าที่เลือก')
@@ -67,6 +69,8 @@ export async function createRentalAction(input: {
     deposit_amount: input.deposit_amount,
     phone: input.phone,
     notes: input.notes,
+    delivery_name: input.delivery_name,
+    delivery_address: input.delivery_address,
   })
 
   try {

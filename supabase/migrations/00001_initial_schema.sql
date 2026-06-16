@@ -129,7 +129,6 @@ CREATE TABLE IF NOT EXISTS public.products (
   price DECIMAL(10,2) NOT NULL DEFAULT 0,
   stock_qty INTEGER NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT true,
-  product_type TEXT NOT NULL DEFAULT 'book' CHECK (product_type IN ('book', 'rent', 'both')),
   rental_price DECIMAL(10,2) NOT NULL DEFAULT 0,
   rental_deposit DECIMAL(10,2) NOT NULL DEFAULT 0,
   is_locked BOOLEAN NOT NULL DEFAULT false,
@@ -304,6 +303,8 @@ CREATE TABLE IF NOT EXISTS public.rentals (
   return_penalty DECIMAL(10,2) DEFAULT 0,
   return_notes TEXT,
   notes TEXT,
+  delivery_name TEXT,
+  delivery_address TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

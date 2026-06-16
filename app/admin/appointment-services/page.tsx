@@ -168,7 +168,7 @@ export default function AdminAppointmentServicesPage() {
                   <TableCell className="px-4 py-3">{svc.duration_minutes} นาที</TableCell>
                   <TableCell className="px-4 py-3">{svc.price > 0 ? `฿${svc.price}` : 'ฟรี'}</TableCell>
                   <TableCell className="px-4 py-3">
-                    <Badge className={`rounded-full border-transparent ${svc.is_active ? 'bg-green-100 text-green-800 hover:bg-green-100' : 'bg-gray-100 text-gray-800 hover:bg-gray-100'}`}>
+                    <Badge className={`rounded-full border-transparent ${svc.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                       {svc.is_active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                     </Badge>
                   </TableCell>

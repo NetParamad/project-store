@@ -34,28 +34,25 @@ export default async function ProductsPage() {
         <Table style={{ minWidth: 700 }}>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="px-4 py-3 font-medium">ID</TableHead>
+              <TableHead className="px-4 py-3 font-medium">ลำดับ</TableHead>
               <TableHead className="px-4 py-3 font-medium">สินค้า</TableHead>
               <TableHead className="px-4 py-3 font-medium">ราคาเช่า</TableHead>
               <TableHead className="px-4 py-3 font-medium">ค่าประกัน</TableHead>
               <TableHead className="px-4 py-3 font-medium">สถานะ</TableHead>
-              <TableHead className="px-4 py-3 font-medium">ประเภท</TableHead>
               <TableHead className="px-4 py-3 text-right font-medium">จัดการ</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {products.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   ไม่พบสินค้า
                 </TableCell>
               </TableRow>
             ) : (
-              products.map((product) => (
+              products.map((product, index) => (
                 <TableRow key={product.id} className="hover:bg-accent/50 transition-colors">
-                  <TableCell className="px-4 py-3 font-mono text-xs">
-                    {product.id}
-                  </TableCell>
+                  <TableCell className="px-4 py-3">{index + 1}</TableCell>
                   <TableCell className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center overflow-hidden shrink-0">
@@ -104,11 +101,6 @@ export default async function ProductsPage() {
                         ปิดใช้งาน
                       </Badge>
                     )}
-                  </TableCell>
-                  <TableCell className="px-4 py-3">
-                    {product.product_type === 'book' && <Badge variant="secondary">จอง</Badge>}
-                    {product.product_type === 'rent' && <Badge variant="secondary">เช่า</Badge>}
-                    {product.product_type === 'both' && <Badge variant="secondary">จอง+เช่า</Badge>}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">

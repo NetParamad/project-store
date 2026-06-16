@@ -2,7 +2,6 @@ import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { getCategories } from '@/lib/supabase/queries'
 import { SearchBar } from '@/components/search-bar'
-import { TypeTabs } from './type-tabs'
 import { CategoryFilter } from './category-filter'
 import { ProductGrid } from './_components/product-grid'
 
@@ -25,10 +24,6 @@ export default async function ProductsPage({ searchParams }: Props) {
           <SearchBar />
         </Suspense>
       </div>
-
-      <Suspense>
-        <TypeTabs />
-      </Suspense>
 
       <div className="md:hidden flex gap-2 overflow-x-auto pb-2">
         <CategoryFilter

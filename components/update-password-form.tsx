@@ -21,11 +21,16 @@ export function UpdatePasswordForm({
 }: React.ComponentPropsWithoutRef<"div">) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    const newErrors: Record<string, string> = {}
+    if (!password) newErrors.password = 'กรุณากรอกรหัสผ่าน'
+    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return }
+    setErrors({})
     const supabase = createClient();
     setIsLoading(true);
     setError(null);
@@ -61,8 +66,10 @@ export function UpdatePasswordForm({
                   placeholder="รหัสผ่านใหม่"
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); setErrors((prev) => ({ ...prev, password: '' })) }}
+                  aria-invalid={!!errors.password}
                 />
+                {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
               <Button type="submit" className="w-full" disabled={isLoading}>

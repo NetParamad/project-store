@@ -1,9 +1,9 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { getActiveAppointmentServices, getAppointmentsByDate, getBookableProducts } from '@/lib/supabase/queries'
+import { getActiveAppointmentServices, getAppointmentsByDate, getAllActiveProducts } from '@/lib/supabase/queries'
 import { createAppointmentAction } from '@/app/actions/appointments'
 import { Loader2, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { DatePicker } from '@/components/date-picker'
 import {
   Select,
   SelectContent,
@@ -50,6 +51,7 @@ function BookAppointmentContent() {
   const [selectedTime, setSelectedTime] = useState('')
   const [phone, setPhone] = useState('')
   const [notes, setNotes] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const selectedService = services.find(s => s.id.toString() === selectedServiceId)
   const selectedProduct = products.find(p => p.id.toString() === selectedProductId)
@@ -63,11 +65,11 @@ function BookAppointmentContent() {
           router.push('/auth/login')
           return
         }
-        const [svc, bookable] = await Promise.all([
+        const [svc, allProducts] = await Promise.all([
           getActiveAppointmentServices(supabase),
-          getBookableProducts(supabase),
+          getAllActiveProducts(supabase),
         ])
-        const available = bookable.filter(p => !p.is_locked)
+        const available = allProducts.filter(p => !p.is_locked)
         setServices(svc)
         setProducts(available)
 
@@ -104,10 +106,12 @@ function BookAppointmentContent() {
     fetch()
   }, [selectedDate])
 
-  function generateTimeSlots(): string[] {
+  function generateTimeSlots(duration: number): string[] {
     const allSlots: string[] = []
     for (let h = 9; h < 18; h++) {
-      allSlots.push(`${h.toString().padStart(2, '0')}:00`)
+      const slot = `${h.toString().padStart(2, '0')}:00`
+      const end = addMinutes(slot, duration)
+      if (end <= '18:00') allSlots.push(slot)
     }
     return allSlots
   }
@@ -133,19 +137,25 @@ function BookAppointmentContent() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!selectedService || !selectedDate || !selectedTime) return
+    const newErrors: Record<string, string> = {}
+    if (!selectedServiceId) newErrors.service = 'กรุณาเลือกบริการ'
+    if (!selectedDate) newErrors.date = 'กรุณาเลือกวันที่'
+    if (!selectedTime) newErrors.time = 'กรุณาเลือกเวลา'
+    if (!phone || !/^\d{10}$/.test(phone)) newErrors.phone = 'กรุณากรอกเบอร์โทรศัพท์ 10 หลัก'
+    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return }
+    setErrors({})
     setSubmitting(true)
 
     try {
-      const endTime = addMinutes(selectedTime, selectedService.duration_minutes)
+      const endTime = addMinutes(selectedTime, selectedService!.duration_minutes)
 
       await createAppointmentAction({
-        service_id: selectedService.id,
+        service_id: selectedService!.id,
         product_id: selectedProductId && selectedProductId !== 'none' ? parseInt(selectedProductId) : null,
         appointment_date: selectedDate,
         time_slot: selectedTime,
         end_time: endTime,
-        phone: phone || undefined,
+        phone,
         notes: notes || undefined,
       })
 
@@ -164,6 +174,11 @@ function BookAppointmentContent() {
     }
   }
 
+  const timeSlots = useMemo(() => {
+    if (!selectedService) return []
+    return generateTimeSlots(selectedService.duration_minutes)
+  }, [selectedService])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -171,8 +186,6 @@ function BookAppointmentContent() {
       </div>
     )
   }
-
-  const timeSlots = generateTimeSlots()
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-6">
@@ -183,13 +196,21 @@ function BookAppointmentContent() {
           <h1 className="text-2xl font-bold">จองนัดหมาย (ลองชุด)</h1>
       </div>
 
+      <Card className="border-blue-200 bg-blue-50">
+        <CardContent className="p-4 text-sm text-blue-800 space-y-1">
+          <p>• การจอง 1 ชุด ราคา 500 บาท ต่อการจอง 1 ครั้ง</p>
+          <p>• สามารถเลือกสินค้าที่ต้องการลองชุดได้ (ไม่บังคับ)</p>
+          <p>• ยกเลิกการจองได้ก่อนถึงวันที่นัดหมาย</p>
+        </CardContent>
+      </Card>
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardContent className="p-4 space-y-4">
           <div className="space-y-2">
             <Label>เลือกบริการ <span className="text-destructive">*</span></Label>
-            <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
-              <SelectTrigger>
+            <Select value={selectedServiceId} onValueChange={(v) => { setSelectedServiceId(v); setErrors((prev) => ({ ...prev, service: '' })) }}>
+              <SelectTrigger aria-invalid={!!errors.service}>
                 <SelectValue placeholder="เลือกประเภทบริการ" />
               </SelectTrigger>
               <SelectContent>
@@ -200,6 +221,7 @@ function BookAppointmentContent() {
                 ))}
               </SelectContent>
             </Select>
+            {errors.service && <p className="text-sm text-destructive">{errors.service}</p>}
           </div>
 
           {selectedService?.type === 'try_on' && (
@@ -245,13 +267,12 @@ function BookAppointmentContent() {
 
           <div className="space-y-2">
             <Label>เลือกวันที่ <span className="text-destructive">*</span></Label>
-            <Input
-              type="date"
+            <DatePicker
               value={selectedDate}
-              onChange={(e) => { setSelectedDate(e.target.value); setSelectedTime('') }}
+              onChange={(v) => { setSelectedDate(v); setSelectedTime(''); setErrors((prev) => ({ ...prev, date: '' })) }}
               min={new Date().toISOString().split('T')[0]}
-              required
             />
+            {errors.date && <p className="text-sm text-destructive">{errors.date}</p>}
           </div>
 
           {selectedDate && (
@@ -269,7 +290,7 @@ function BookAppointmentContent() {
                         type="button"
                         disabled={!available}
                         variant="outline"
-                        onClick={() => setSelectedTime(slot)}
+                        onClick={() => { setSelectedTime(slot); setErrors((prev) => ({ ...prev, time: '' })) }}
                         className={`text-sm ${
                           selectedTime === slot
                             ? 'bg-primary text-primary-foreground border-primary hover:bg-primary hover:text-primary-foreground'
@@ -278,12 +299,13 @@ function BookAppointmentContent() {
                               : ''
                         }`}
                       >
-                        {slot.substring(0, 5)}
+                        {slot.substring(0, 5)}-{addMinutes(slot, selectedService!.duration_minutes).substring(0, 5)}
                       </Button>
                     )
                   })}
                 </div>
               )}
+              {errors.time && <p className="text-sm text-destructive">{errors.time}</p>}
             </div>
           )}
         </CardContent></Card>
@@ -292,16 +314,18 @@ function BookAppointmentContent() {
           <CardContent className="p-4 space-y-4">
           <h2 className="font-semibold">ข้อมูลเพิ่มเติม</h2>
           <div className="space-y-2">
-            <Label htmlFor="phone">เบอร์โทร</Label>
+            <Label htmlFor="phone">เบอร์โทร <span className="text-destructive">*</span></Label>
             <Input
               id="phone"
               type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => { setPhone(e.target.value); setErrors((prev) => ({ ...prev, phone: '' })) }}
               placeholder="เบอร์โทรศัพท์สำหรับติดต่อ"
               pattern="[0-9]{10}"
               title="กรุณากรอกเบอร์โทร 10 หลัก"
+              aria-invalid={!!errors.phone}
             />
+            {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="notes">หมายเหตุ</Label>
@@ -315,7 +339,7 @@ function BookAppointmentContent() {
           </div>
         </CardContent></Card>
 
-        <Button type="submit" disabled={submitting || !selectedServiceId || !selectedDate || !selectedTime} className="w-full">
+        <Button type="submit" disabled={submitting} className="w-full">
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'ยืนยันการจอง'}
         </Button>
       </form>

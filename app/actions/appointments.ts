@@ -6,6 +6,7 @@ import {
   createNotification,
   getAppointmentsByDate,
   getActiveAppointmentServices,
+  isProductAvailable,
 } from '@/lib/supabase/queries'
 import { revalidatePath } from 'next/cache'
 
@@ -15,7 +16,7 @@ export async function createAppointmentAction(input: {
   appointment_date: string
   time_slot: string
   end_time: string
-  phone?: string
+  phone: string
   notes?: string
 }) {
   const supabase = await createClient()
@@ -23,7 +24,7 @@ export async function createAppointmentAction(input: {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  if (input.phone && !/^\d{10}$/.test(input.phone)) {
+  if (!/^\d{10}$/.test(input.phone)) {
     throw new Error('กรุณาระบุเบอร์โทรศัพท์ 10 หลัก')
   }
 
@@ -42,6 +43,13 @@ export async function createAppointmentAction(input: {
     return input.time_slot < occ.end_time && input.end_time > occ.time_slot
   })
   if (conflict) throw new Error('ช่วงเวลานี้ถูกจองแล้ว กรุณาเลือกเวลาอื่น')
+
+  if (input.product_id) {
+    const productAvailable = await isProductAvailable(supabase, input.product_id, input.appointment_date)
+    if (!productAvailable) {
+      throw new Error('สินค้าที่เลือกไม่ว่างในวันที่ต้องการ กรุณาเลือกสินค้าอื่น')
+    }
+  }
 
   await createAppointment(supabase, {
     user_id: user.id,

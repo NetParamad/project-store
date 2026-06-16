@@ -23,10 +23,7 @@ export default async function ProductDetailPage({
   const images = product.images ?? []
   const productName = product.name
 
-  const availabilityMap =
-    product.product_type === 'rent' || product.product_type === 'both'
-      ? await getProductsAvailability(supabase, [product.id])
-      : new Map<number, boolean>()
+  const availabilityMap = await getProductsAvailability(supabase, [product.id])
   const isAvailable = availabilityMap.get(product.id)
 
   return (
@@ -51,57 +48,40 @@ export default async function ProductDetailPage({
 
         <div className="space-y-6">
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              {product.product_type === 'book' && (
-                <Badge variant="secondary">จอง</Badge>
-              )}
-              {product.product_type === 'rent' && (
-                <Badge variant="secondary">เช่าชุด</Badge>
-              )}
-              {product.product_type === 'both' && (
-                <Badge variant="secondary">จอง+เช่า</Badge>
-              )}
-            </div>
             <h1 className="text-3xl font-bold">{productName}</h1>
           </div>
 
-          {(product.product_type === 'rent' || product.product_type === 'both') && (
-            <Card className="border-blue-200 bg-blue-50">
-              <CardContent className="p-4 space-y-2">
-                <h3 className="font-semibold text-blue-800 flex items-center gap-2">
-                  บริการเช่าชุด
-                  {isAvailable === false && (
-                    <Badge variant="secondary">ไม่ว่าง</Badge>
-                  )}
-                  {isAvailable === true && (
-                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">พร้อมให้เช่า</Badge>
-                  )}
-                </h3>
-                <div className="text-sm text-blue-700 space-y-1">
-                  <p>ราคาเช่า: ฿{Number(product.rental_price).toLocaleString()} / วัน</p>
-                  {Number(product.rental_deposit) > 0 && (
-                    <p>ค่าประกัน: ฿{Number(product.rental_deposit).toLocaleString()}</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent className="p-4 space-y-2">
+              <h3 className="font-semibold text-blue-800 flex items-center gap-2">
+                บริการเช่าชุด
+                {isAvailable === false && (
+                  <Badge variant="destructive">ไม่ว่าง</Badge>
+                )}
+                {isAvailable === true && (
+                  <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">พร้อมให้เช่า</Badge>
+                )}
+              </h3>
+              <div className="text-sm text-blue-700 space-y-1">
+                <p>ราคาเช่า: ฿{Number(product.rental_price).toLocaleString()} / วัน</p>
+                {Number(product.rental_deposit) > 0 && (
+                  <p>ค่าประกัน: ฿{Number(product.rental_deposit).toLocaleString()}</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="space-y-2">
-            {(product.product_type === 'book' || product.product_type === 'both') && (
-              <Button asChild variant="outline" className="w-full">
-                <Link href={`/appointments/book?product=${product.slug}`}>
-                  จอง (ลองชุด)
-                </Link>
-              </Button>
-            )}
-            {(product.product_type === 'rent' || product.product_type === 'both') && (
-              <Button asChild variant="default" className="w-full">
-                <Link href={`/rentals/new?product=${product.slug}`}>
-                  เช่าชุด
-                </Link>
-              </Button>
-            )}
+            <Button asChild variant="outline" className="w-full">
+              <Link href={`/appointments/book?product=${product.slug}`}>
+                จอง (ลองชุด)
+              </Link>
+            </Button>
+            <Button asChild variant="default" className="w-full">
+              <Link href={`/rentals/new?product=${product.slug}`}>
+                เช่าชุด
+              </Link>
+            </Button>
           </div>
 
           {product.description && (

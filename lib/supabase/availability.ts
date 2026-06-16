@@ -14,7 +14,7 @@ export async function getProductsAvailability(
     endDate ??
     new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-  const [locksResult, rentalsResult] = await Promise.all([
+  const [locksResult, rentalsResult, appointmentsResult] = await Promise.all([
     client
       .from('product_date_locks')
       .select('product_id')
@@ -28,11 +28,19 @@ export async function getProductsAvailability(
       .not('status', 'in', '("cancelled")')
       .lte('rental_start_date', end)
       .gte('rental_end_date', start),
+    client
+      .from('appointments')
+      .select('product_id')
+      .in('product_id', productIds)
+      .not('status', 'in', '("cancelled")')
+      .gte('appointment_date', start)
+      .lte('appointment_date', end),
   ])
 
   const unavailableIds = new Set<number>()
   locksResult.data?.forEach((r) => unavailableIds.add(r.product_id))
   rentalsResult.data?.forEach((r) => unavailableIds.add(r.product_id))
+  appointmentsResult.data?.forEach((r) => unavailableIds.add(r.product_id))
 
   const result = new Map<number, boolean>()
   productIds.forEach((id) => result.set(id, !unavailableIds.has(id)))

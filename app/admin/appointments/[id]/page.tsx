@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { getAppointment } from '@/lib/supabase/queries'
+import { getAppointment, getAllActiveProducts } from '@/lib/supabase/queries'
 import { Loader2, ArrowLeft, CheckCircle, Circle, Pencil, XCircle, Shirt, ClipboardList, Ban } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -65,6 +65,7 @@ export default function AdminAppointmentDetailPage() {
   const [rentalEnd, setRentalEnd] = useState('')
   const [rentalPrice, setRentalPrice] = useState('0')
   const [rentalDeposit, setRentalDeposit] = useState('0')
+  const [rentalErrors, setRentalErrors] = useState<Record<string, string>>({})
 
   const [tryonOpen, setTryonOpen] = useState(false)
   const [tryonPrice, setTryonPrice] = useState('500')
@@ -87,12 +88,8 @@ export default function AdminAppointmentDetailPage() {
         setRentalPrice(data.product.rental_price.toString())
         setRentalDeposit(data.product.rental_deposit.toString())
       }
-      const { data: prods } = await supabase
-        .from('products')
-        .select('*')
-        .in('product_type', ['book', 'both'])
-        .eq('is_active', true)
-      const availableProds = (prods ?? []).filter((p: any) => !p.is_locked)
+      const allProducts = await getAllActiveProducts(supabase)
+      const availableProds = allProducts.filter(p => !p.is_locked)
       setProducts(availableProds)
       setLoading(false)
     }
@@ -133,15 +130,38 @@ export default function AdminAppointmentDetailPage() {
     if (!appointment) return
     setUpdating(true)
     try {
-      const { updateAppointmentAdmin } = await import('@/lib/supabase/queries')
+      const { updateAppointmentAdmin, getAppointmentsByDate, isProductAvailable } = await import('@/lib/supabase/queries')
       const supabase = createClient()
       const endHour = parseInt(editTime.split(':')[0]) + 1
       const endTime = `${endHour.toString().padStart(2, '0')}:00`
+
+      const occupiedSlots = await getAppointmentsByDate(supabase, editDate)
+      const timeConflict = occupiedSlots.some((occ) => {
+        if (occ.id === appointment.id) return false
+        if (occ.service_id !== appointment.service.id) return false
+        return editTime < occ.end_time && endTime > occ.time_slot
+      })
+      if (timeConflict) {
+        toast.error('ช่วงเวลานี้ถูกจองแล้ว กรุณาเลือกเวลาอื่น')
+        setUpdating(false)
+        return
+      }
+
+      const newProductId = editProductId && editProductId !== 'none' ? parseInt(editProductId) : null
+      if (newProductId && (newProductId !== appointment.product_id || editDate !== appointment.appointment_date)) {
+        const available = await isProductAvailable(supabase, newProductId, editDate)
+        if (!available) {
+          toast.error('สินค้านี้ไม่ว่างในวันที่เลือก')
+          setUpdating(false)
+          return
+        }
+      }
+
       await updateAppointmentAdmin(supabase, appointment.id, {
         appointment_date: editDate,
         time_slot: editTime,
         end_time: endTime,
-        product_id: editProductId && editProductId !== 'none' ? parseInt(editProductId) : null,
+        product_id: newProductId,
         notes: editNotes || undefined,
       })
       const updated = await getAppointment(supabase, appointment.id)
@@ -182,6 +202,11 @@ export default function AdminAppointmentDetailPage() {
 
   async function handleConvertToRental() {
     if (!appointment || !appointment.product) return
+    const newErrors: Record<string, string> = {}
+    if (!rentalStart) newErrors.rentalStart = 'กรุณาเลือกวันที่เริ่มเช่า'
+    if (!rentalEnd) newErrors.rentalEnd = 'กรุณาเลือกวันที่สิ้นสุดเช่า'
+    if (Object.keys(newErrors).length > 0) { setRentalErrors(newErrors); return }
+    setRentalErrors({})
     setUpdating(true)
     try {
       const { createRental, updateAppointmentAdmin, isProductAvailable } = await import('@/lib/supabase/queries')
@@ -450,11 +475,13 @@ export default function AdminAppointmentDetailPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <Label>วันที่เริ่มเช่า <span className="text-destructive">*</span></Label>
-                      <Input type="date" value={rentalStart} onChange={(e) => setRentalStart(e.target.value)} />
+                      <Input type="date" value={rentalStart} onChange={(e) => { setRentalStart(e.target.value); setRentalErrors(p => ({ ...p, rentalStart: '' })) }} aria-invalid={!!rentalErrors.rentalStart} />
+                      {rentalErrors.rentalStart && <p className="text-sm text-destructive">{rentalErrors.rentalStart}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label>วันที่สิ้นสุดเช่า <span className="text-destructive">*</span></Label>
-                      <Input type="date" value={rentalEnd} onChange={(e) => setRentalEnd(e.target.value)} />
+                      <Input type="date" value={rentalEnd} onChange={(e) => { setRentalEnd(e.target.value); setRentalErrors(p => ({ ...p, rentalEnd: '' })) }} aria-invalid={!!rentalErrors.rentalEnd} />
+                      {rentalErrors.rentalEnd && <p className="text-sm text-destructive">{rentalErrors.rentalEnd}</p>}
                     </div>
                   </div>
                   {rentalStart && rentalEnd && (
@@ -472,7 +499,7 @@ export default function AdminAppointmentDetailPage() {
                       <Input type="number" min="0" value={rentalDeposit} onChange={(e) => setRentalDeposit(e.target.value)} />
                     </div>
                   </div>
-                  <Button onClick={handleConvertToRental} disabled={updating || !rentalStart || !rentalEnd} className="w-full">
+                  <Button onClick={handleConvertToRental} disabled={updating} className="w-full">
                     {updating ? 'กำลังสร้าง...' : 'สร้างรายการเช่า'}
                   </Button>
                 </div>

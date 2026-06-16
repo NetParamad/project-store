@@ -164,7 +164,6 @@ export async function createProduct(
     price?: number
     stock_qty?: number
     is_active?: boolean
-    product_type?: 'book' | 'rent' | 'both'
   }
 ) {
   const { data, error } = await client
@@ -177,7 +176,6 @@ export async function createProduct(
       price: input.price ?? 0,
       stock_qty: input.stock_qty ?? 0,
       is_active: input.is_active ?? true,
-      product_type: input.product_type ?? 'book',
     })
     .select()
     .single()
@@ -197,7 +195,6 @@ export async function updateProduct(
     price?: number
     stock_qty?: number
     is_active?: boolean
-    product_type?: 'book' | 'rent' | 'both'
   }
 ) {
   const { data, error } = await client
@@ -256,8 +253,8 @@ export async function addProductImage(
     .select()
     .single()
 
-  if (error) throw error
-  return data as ProductImage
+  if (error) throw new Error(error.message)
+  return data as Appointment
 }
 
 export async function deleteProductImage(client: SupabaseClient, id: number) {
@@ -327,7 +324,7 @@ export async function createAppointment(
     appointment_date: string
     time_slot: string
     end_time: string
-    phone?: string
+    phone: string
     notes?: string
   }
 ) {
@@ -340,7 +337,7 @@ export async function createAppointment(
       appointment_date: input.appointment_date,
       time_slot: input.time_slot,
       end_time: input.end_time,
-      phone: input.phone ?? null,
+      phone: input.phone,
       notes: input.notes ?? null,
     })
     .select()
@@ -407,11 +404,16 @@ export async function updateAppointmentStatus(
 export async function getAppointmentsByDate(client: SupabaseClient, date: string) {
   const { data } = await client
     .from('appointments')
-    .select('time_slot, end_time, service_id')
+    .select('id, time_slot, end_time, service_id')
     .eq('appointment_date', date)
     .in('status', ['pending', 'confirmed'])
 
-  return (data ?? []) as { time_slot: string; end_time: string; service_id: number }[]
+  return (data ?? []).map((row: { id: number; time_slot: string; end_time: string; service_id: number }) => ({
+    id: row.id,
+    time_slot: row.time_slot.substring(0, 5),
+    end_time: row.end_time.substring(0, 5),
+    service_id: row.service_id,
+  }))
 }
 
 // ─── Store Front ───
@@ -423,7 +425,6 @@ export async function getActiveProducts(
     search?: string
     page?: number
     pageSize?: number
-    product_type?: ('book' | 'rent' | 'both')[]
   }
 ) {
   const page = options?.page ?? 1
@@ -439,10 +440,6 @@ export async function getActiveProducts(
 
   if (options?.category_id) {
     query = query.eq('category_id', options.category_id)
-  }
-
-  if (options?.product_type) {
-    query = query.in('product_type', options.product_type)
   }
 
   if (options?.search) {
@@ -462,23 +459,11 @@ export async function getActiveProducts(
   }
 }
 
-export async function getBookableProducts(client: SupabaseClient) {
+export async function getAllActiveProducts(client: SupabaseClient) {
   const { data } = await client
     .from('products')
     .select('*, images:product_images(*)')
     .eq('is_active', true)
-    .in('product_type', ['book', 'both'])
-    .order('created_at', { ascending: false })
-
-  return (data ?? []) as (Product & { images: ProductImage[] })[]
-}
-
-export async function getRentableProducts(client: SupabaseClient) {
-  const { data } = await client
-    .from('products')
-    .select('*, images:product_images(*)')
-    .eq('is_active', true)
-    .in('product_type', ['rent', 'both'])
     .order('created_at', { ascending: false })
 
   return (data ?? []) as (Product & { images: ProductImage[] })[]
@@ -723,7 +708,7 @@ export async function createNotification(
     .select()
     .single()
 
-  if (error) throw error
+  if (error) throw new Error(error.message)
   return data
 }
 
@@ -781,7 +766,7 @@ export async function isProductAvailable(
   endDate?: string
 ) {
   const end = endDate ?? startDate
-  const [locksR, rentalsR] = await Promise.all([
+  const [locksR, rentalsR, appointmentsR] = await Promise.all([
     client
       .from('product_date_locks')
       .select('id')
@@ -797,9 +782,19 @@ export async function isProductAvailable(
       .lte('rental_start_date', end)
       .gte('rental_end_date', startDate)
       .limit(1),
+    client
+      .from('appointments')
+      .select('id')
+      .eq('product_id', productId)
+      .not('status', 'in', '("cancelled")')
+      .gte('appointment_date', startDate)
+      .lte('appointment_date', end)
+      .limit(1),
   ])
 
-  return (locksR.data?.length ?? 0) === 0 && (rentalsR.data?.length ?? 0) === 0
+  return (locksR.data?.length ?? 0) === 0
+    && (rentalsR.data?.length ?? 0) === 0
+    && (appointmentsR.data?.length ?? 0) === 0
 }
 
 // ─── Rentals ───
@@ -816,6 +811,8 @@ export async function createRental(
     rental_price: number
     deposit_amount: number
     notes?: string
+    delivery_name?: string
+    delivery_address?: string
   }
 ) {
   const { data, error } = await client
@@ -824,17 +821,18 @@ export async function createRental(
       user_id: input.user_id,
       product_id: input.product_id,
       appointment_id: input.appointment_id ?? null,
-      phone: input.phone ?? null,
       rental_start_date: input.rental_start_date,
       rental_end_date: input.rental_end_date,
       rental_price: input.rental_price,
       deposit_amount: input.deposit_amount,
       notes: input.notes ?? null,
+      delivery_name: input.delivery_name ?? null,
+      delivery_address: input.delivery_address ?? null,
     })
     .select()
     .single()
 
-  if (error) throw error
+  if (error) throw new Error(error.message)
   return data as Rental
 }
 

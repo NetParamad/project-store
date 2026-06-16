@@ -33,10 +33,9 @@ export default async function CategoriesPage() {
         <Table style={{ minWidth: 600 }}>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="px-4 py-3 font-medium">ID</TableHead>
+              <TableHead className="px-4 py-3 font-medium">ลำดับ</TableHead>
               <TableHead className="px-4 py-3 font-medium">ชื่อ</TableHead>
               <TableHead className="px-4 py-3 font-medium">Slug</TableHead>
-              <TableHead className="px-4 py-3 font-medium">ลำดับ</TableHead>
               <TableHead className="px-4 py-3 text-right font-medium">จัดการ</TableHead>
             </TableRow>
           </TableHeader>
@@ -50,12 +49,11 @@ export default async function CategoriesPage() {
             ) : (
               categories.map((category) => (
                 <TableRow key={category.id} className="hover:bg-accent/50 transition-colors">
-                  <TableCell className="px-4 py-3">{category.id}</TableCell>
+                  <TableCell className="px-4 py-3">{category.sort_order}</TableCell>
                   <TableCell className="px-4 py-3 font-medium">{category.name}</TableCell>
                   <TableCell className="px-4 py-3 text-muted-foreground text-xs font-mono">
                     {category.slug}
                   </TableCell>
-                  <TableCell className="px-4 py-3">{category.sort_order}</TableCell>
                   <TableCell className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Link href={`/admin/categories/${category.id}/edit`}>

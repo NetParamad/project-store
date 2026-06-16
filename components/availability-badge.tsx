@@ -9,7 +9,7 @@ export function AvailabilityBadge({ available, className }: Props) {
   if (available) return null
 
   return (
-    <Badge variant="secondary" className={className}>
+    <Badge variant="destructive" className={className}>
       ไม่ว่าง
     </Badge>
   )

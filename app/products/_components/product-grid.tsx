@@ -8,10 +8,9 @@ import { Pagination } from '../pagination'
 
 interface Props {
   searchParams: Promise<{ category?: string; search?: string; page?: string; available?: string }>
-  typeFilter?: ('book' | 'rent' | 'both')[]
 }
 
-export async function ProductGrid({ searchParams, typeFilter }: Props) {
+export async function ProductGrid({ searchParams }: Props) {
   const params = await searchParams
   const supabase = await createClient()
   const categories = await getCategories(supabase)
@@ -26,7 +25,6 @@ export async function ProductGrid({ searchParams, typeFilter }: Props) {
     search,
     page: isNaN(page) ? 1 : page,
     pageSize: 12,
-    product_type: typeFilter,
   })
 
   const productIds = result.products.map((p) => p.id)

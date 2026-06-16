@@ -56,6 +56,7 @@ export default function AdminRentalDetailPage() {
   const [returnCondition, setReturnCondition] = useState('good')
   const [returnPenalty, setReturnPenalty] = useState('0')
   const [returnNotes, setReturnNotes] = useState('')
+  const [returnErrors, setReturnErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     const fetch = async () => {
@@ -113,7 +114,11 @@ export default function AdminRentalDetailPage() {
   }
 
   async function handleReturn() {
-    if (!rental || !returnDate) return
+    if (!rental) return
+    const newErrors: Record<string, string> = {}
+    if (!returnDate) newErrors.returnDate = 'กรุณาเลือกวันที่คืนจริง'
+    if (Object.keys(newErrors).length > 0) { setReturnErrors(newErrors); return }
+    setReturnErrors({})
     setUpdating(true)
     try {
       const supabase = createClient()
@@ -358,7 +363,8 @@ export default function AdminRentalDetailPage() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>วันที่คืนจริง <span className="text-destructive">*</span></Label>
-              <Input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} required />
+              <Input type="date" value={returnDate} onChange={(e) => { setReturnDate(e.target.value); setReturnErrors((prev) => ({ ...prev, returnDate: '' })) }} required aria-invalid={!!returnErrors.returnDate} />
+              {returnErrors.returnDate && <p className="text-sm text-destructive">{returnErrors.returnDate}</p>}
             </div>
             <div className="space-y-2">
               <Label>สภาพชุด</Label>

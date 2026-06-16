@@ -46,7 +46,6 @@ export function ProductForm({ categories, initialData }: Props) {
           slug: initialData.slug,
           description: initialData.description ?? '',
           is_active: initialData.is_active,
-          product_type: initialData.product_type,
           rental_price: initialData.rental_price.toString(),
           rental_deposit: initialData.rental_deposit.toString(),
           is_locked: initialData.is_locked,
@@ -58,7 +57,6 @@ export function ProductForm({ categories, initialData }: Props) {
           slug: '',
           description: '',
           is_active: true,
-          product_type: 'book',
           rental_price: '0',
           rental_deposit: '0',
           is_locked: false,
@@ -198,7 +196,6 @@ export function ProductForm({ categories, initialData }: Props) {
         slug: form.slug,
         description: form.description || null,
         is_active: form.is_active,
-        product_type: form.product_type,
         rental_price: parseFloat(form.rental_price) || 0,
         rental_deposit: parseFloat(form.rental_deposit) || 0,
         is_locked: form.is_locked,
@@ -275,9 +272,7 @@ export function ProductForm({ categories, initialData }: Props) {
       console.error('Product form error:', err)
       console.error('Error type:', typeof err, 'keys:', err ? Object.keys(err as object) : 'null', 'json:', JSON.stringify(err))
       const msg = err && typeof err === 'object' ? String((err as Record<string, unknown>).message || (err as Record<string, unknown>).details || JSON.stringify(err) || '') : String(err)
-      if (msg.includes('check constraint') || msg.includes('product_type')) {
-        toast.error('ข้อผิดพลาด: ฐานข้อมูลยังไม่อนุญาตค่า product_type นี้ กรุณาเข้าไปที่ "ตั้งค่า" → "อัปเดตฐานข้อมูล" เพื่อแก้ไข')
-      } else if (msg) {
+      if (msg) {
         toast.error(msg)
       } else {
         toast.error('เกิดข้อผิดพลาด')
@@ -371,23 +366,6 @@ export function ProductForm({ categories, initialData }: Props) {
             <Label htmlFor="is_active" className="cursor-pointer">
               แสดงต่อลูกค้า
             </Label>
-          </div>
-
-          <div className="mt-4 space-y-2">
-            <Label>ประเภท</Label>
-            <Select
-              value={form.product_type}
-              onValueChange={(v) => setForm({ ...form, product_type: v as 'book' | 'rent' | 'both' })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="เลือกประเภท" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="book">จอง</SelectItem>
-                <SelectItem value="rent">เช่า</SelectItem>
-                <SelectItem value="both">จองและเช่า</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           <Separator className="my-4" />

@@ -22,6 +22,7 @@ export default function ProfilePage() {
 
   const [displayName, setDisplayName] = useState('')
   const [phone, setPhone] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     const fetch = async () => {
@@ -43,6 +44,10 @@ export default function ProfilePage() {
   }, [router])
 
   const handleSave = async () => {
+    const newErrors: Record<string, string> = {}
+    if (phone && !/^\d{10}$/.test(phone)) newErrors.phone = 'กรุณากรอกเบอร์โทรศัพท์ 10 หลัก'
+    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return }
+    setErrors({})
     setSaving(true)
     setMessage('')
     try {
@@ -120,10 +125,15 @@ export default function ProfilePage() {
           <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
           <Input
             id="phone"
+            type="tel"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => { setPhone(e.target.value); setErrors((prev) => ({ ...prev, phone: '' })) }}
             placeholder="098-XXX-XXXX"
+            pattern="[0-9]{10}"
+            title="กรุณากรอกเบอร์โทร 10 หลัก"
+            aria-invalid={!!errors.phone}
           />
+          {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
         </div>
 
         <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto">

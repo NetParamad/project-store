@@ -26,13 +26,15 @@ export function DateLockManager({ productId, initialLocks }: Props) {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [reason, setReason] = useState('')
+  const [lockErrors, setLockErrors] = useState<Record<string, string>>({})
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
-    if (!startDate || !endDate) {
-      toast.error('กรุณาเลือกวันที่เริ่มต้นและสิ้นสุด')
-      return
-    }
+    const newErrors: Record<string, string> = {}
+    if (!startDate) newErrors.startDate = 'กรุณาเลือกวันที่เริ่มต้น'
+    if (!endDate) newErrors.endDate = 'กรุณาเลือกวันที่สิ้นสุด'
+    if (Object.keys(newErrors).length > 0) { setLockErrors(newErrors); return }
+    setLockErrors({})
     setLoading(true)
     try {
       const supabase = createClient()

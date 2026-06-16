@@ -1,14 +1,15 @@
 'use client'
 
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { getAppointment, updateAppointmentCustomer, getBookableProducts, getAppointmentsByDate } from '@/lib/supabase/queries'
+import { getAppointment, updateAppointmentCustomer, getAllActiveProducts, getAppointmentsByDate, isProductAvailable } from '@/lib/supabase/queries'
 import { Loader2, ArrowLeft, CheckCircle, Circle, Pencil, FileText, ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { DatePicker } from '@/components/date-picker'
 import {
   Select,
   SelectContent,
@@ -68,6 +69,7 @@ function AppointmentDetailContent() {
   const [editProductId, setEditProductId] = useState('none')
   const [editNotes, setEditNotes] = useState('')
   const [saving, setSaving] = useState(false)
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     const fetch = async () => {
@@ -85,8 +87,8 @@ function AppointmentDetailContent() {
         }
         setAppointment(data)
 
-        const prods = await getBookableProducts(supabase)
-        const available = prods.filter(p => !p.is_locked)
+        const allProducts = await getAllActiveProducts(supabase)
+        const available = allProducts.filter(p => !p.is_locked)
         setProducts(available)
       } catch (err) {
         console.error('Failed to load appointment:', err)
@@ -116,10 +118,12 @@ function AppointmentDetailContent() {
     setEditing(true)
   }
 
-  function generateTimeSlots(): string[] {
+  function generateTimeSlots(duration: number): string[] {
     const allSlots: string[] = []
     for (let h = 9; h < 18; h++) {
-      allSlots.push(`${h.toString().padStart(2, '0')}:00`)
+      const slot = `${h.toString().padStart(2, '0')}:00`
+      const end = addMinutes(slot, duration)
+      if (end <= '18:00') allSlots.push(slot)
     }
     return allSlots
   }
@@ -144,7 +148,12 @@ function AppointmentDetailContent() {
   }
 
   async function handleSaveEdit() {
-    if (!appointment || !editDate || !editTime) return
+    if (!appointment) return
+    const newErrors: Record<string, string> = {}
+    if (!editDate) newErrors.editDate = 'กรุณาเลือกวันที่'
+    if (!editTime) newErrors.editTime = 'กรุณาเลือกเวลา'
+    if (Object.keys(newErrors).length > 0) { setEditErrors(newErrors); return }
+    setEditErrors({})
     setSaving(true)
     try {
       const supabase = createClient()
@@ -152,11 +161,22 @@ function AppointmentDetailContent() {
       if (!user) return
 
       const endTime = addMinutes(editTime, appointment.service.duration_minutes)
+
+      const newProductId = editProductId && editProductId !== 'none' ? parseInt(editProductId) : null
+      if (newProductId && (newProductId !== appointment.product_id || editDate !== appointment.appointment_date)) {
+        const available = await isProductAvailable(supabase, newProductId, editDate)
+        if (!available) {
+          alert('สินค้านี้ไม่ว่างในวันที่เลือก')
+          setSaving(false)
+          return
+        }
+      }
+
       await updateAppointmentCustomer(supabase, appointment.id, user.id, {
         appointment_date: editDate,
         time_slot: editTime,
         end_time: endTime,
-        product_id: editProductId && editProductId !== 'none' ? parseInt(editProductId) : null,
+        product_id: newProductId,
         notes: editNotes || undefined,
       })
 
@@ -170,6 +190,11 @@ function AppointmentDetailContent() {
       setSaving(false)
     }
   }
+
+  const timeSlots = useMemo(() => {
+    if (!appointment?.service) return []
+    return generateTimeSlots(appointment.service.duration_minutes)
+  }, [appointment?.service])
 
   if (loading) {
     return (
@@ -186,7 +211,6 @@ function AppointmentDetailContent() {
   const currentStep = statusSteps.indexOf(appointment.status)
   const serviceName = appointment.service?.name || ''
   const productName = appointment.product ? appointment.product.name : null
-  const timeSlots = generateTimeSlots()
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-8">
@@ -245,8 +269,12 @@ function AppointmentDetailContent() {
               <div className="space-y-4 pt-2">
                 <div className="space-y-2">
                   <Label>วันที่</Label>
-                  <Input type="date" value={editDate} onChange={(e) => { setEditDate(e.target.value); setEditTime('') }}
-                    min={new Date().toISOString().split('T')[0]} />
+                  <DatePicker
+                    value={editDate}
+                    onChange={(v) => { setEditDate(v); setEditTime(''); setEditErrors((prev) => ({ ...prev, editDate: '' })) }}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                  {editErrors.editDate && <p className="text-sm text-destructive">{editErrors.editDate}</p>}
                 </div>
 
                 {editDate && (
@@ -257,13 +285,14 @@ function AppointmentDetailContent() {
                         const available = isSlotAvailable(slot)
                         return (
                           <Button key={slot} type="button" disabled={!available} variant="outline"
-                            onClick={() => setEditTime(slot)}
+                            onClick={() => { setEditTime(slot); setEditErrors((prev) => ({ ...prev, editTime: '' })) }}
                             className={`text-sm ${editTime === slot ? 'bg-primary text-primary-foreground border-primary hover:bg-primary hover:text-primary-foreground' : !available ? 'bg-muted text-muted-foreground/50 border-muted' : ''}`}>
-                            {slot.substring(0, 5)}
+                            {slot.substring(0, 5)}-{addMinutes(slot, appointment!.service.duration_minutes).substring(0, 5)}
                           </Button>
                         )
                       })}
                     </div>
+                    {editErrors.editTime && <p className="text-sm text-destructive">{editErrors.editTime}</p>}
                   </div>
                 )}
 
